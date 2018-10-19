@@ -33,5 +33,16 @@ pip install cutadapt
 curl -fsSL https://github.com/FelixKrueger/TrimGalore/archive/0.4.5.tar.gz -o trim_galore.tar.gz
 tar xvzf trim_galore.tar.gz
 
+# Install g++ dependency so that STAR can be installed
+sudo apt-get install g++
+sudo apt-get install make
+
+# Install STAR for genomic alignment
+wget https://github.com/alexdobin/STAR/archive/2.6.0a.tar.gz
+tar -xzf 2.6.0a.tar.gz
+cd STAR-2.6.0a
+cd STAR/source
+make STAR
+
 # Set PATH so everything can be accessed
 export PATH=$PATH:/usr/lib/rstudio-server/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:/usr/lib/rstudio-server/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:/root/.local/lib/python2.7/site-packages:/root/.local/bin

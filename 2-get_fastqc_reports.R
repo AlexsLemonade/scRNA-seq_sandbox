@@ -9,7 +9,7 @@ if(!("fastqcr" %in% installed.packages())){
 `%>%` <- dplyr::`%>%`
 
 # Aggregate the reports
-qc <- fastqcr::qc_aggregate(qc.dir = "fastqc_data")
+qc <- fastqcr::qc_aggregate(qc.dir = "fastqc_reports")
 
 write.csv(qc_stats(qc), file = "fastqc_quality_report_full.csv")
 
