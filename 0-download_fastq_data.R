@@ -5,18 +5,9 @@
 #
 #
 #-------------------------- Get necessary packages-----------------------------#
-if(!("SRAdb" %in% installed.packages())){
-  source('http://bioconductor.org/biocLite.R')
-  biocLite(c('SRAdb', 'DBI'), dependencies = TRUE)
-}
-if(!("optparse" %in% installed.packages())){
-  install.packages("optparse")
-}
 library(SRAdb)
 library(DBI)
-
-# Require optparse
-require(optparse)
+library(optparse)
 
 option_list <- list( 
   make_option(opt_str = c("-d", "--data"), type = "character", default = NULL, 
