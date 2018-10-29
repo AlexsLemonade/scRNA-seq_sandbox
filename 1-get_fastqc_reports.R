@@ -22,9 +22,9 @@ setwd(opt$dir)
 write.csv(qc_stats(qc), file = "../fastqc_quality_report_full.csv")
 
 # Filter out samples that have failed the quality tests
-qc %>%
+qc_filtered <- qc %>%
   dplyr::select(sample, module, status) %>%    
   dplyr::filter(status %in% c("WARN", "FAIL")) %>%
   dplyr::arrange(sample)
 
-write.csv(qc_stats(qc), file = "../fastqc_quality_report_filtered.csv")
+write.csv(qc_stats(qc_filtered), file = "../fastqc_quality_report_filtered.csv")

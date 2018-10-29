@@ -1,8 +1,7 @@
 # CCDL ALSF 2018
 # C. Savonen 
 # 
-# Get raw reads for single cell glioblastoma data from Darmanis et al, 2017
-#
+# Get raw reads for the given SRP Id
 #
 #-------------------------- Get necessary packages-----------------------------#
 library(SRAdb)
@@ -28,7 +27,8 @@ files <- listSRAfile(opt$data, con)
 
 # If we want to restrict the number of samples being processed:
 if (!is.null(opt$number)){
-  files <- files$run[runif(opt$number, min = 1, max = nrow(files))]
+  set.seed(12345)
+  files <- files$run[sample(nrow(files), opt$number)]
 } else {
   files <- files$run
 }
