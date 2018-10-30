@@ -53,6 +53,7 @@ RUN curl -fsSL https://github.com/FelixKrueger/TrimGalore/archive/0.4.5.tar.gz -
 RUN tar xvzf trim_galore.tar.gz
 RUN chmod 755 TrimGalore-0.4.5/trim_galore
 
-# Install STAR for genomic alignment
-RUN wget https://github.com/alexdobin/STAR/archive/2.6.0a.tar.gz
-RUN tar -xzf 2.6.0a.tar.gz
+# Install HISAT2 for genomic alignment
+RUN wget ftp://ftp.ccb.jhu.edu/pub/infphilo/hisat2/downloads/hisat2-2.1.0-Linux_x86_64.zip
+RUN unzip hisat2-2.1.0-Linux_x86_64.zip
+

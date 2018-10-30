@@ -1,34 +1,11 @@
 #!/bin/bash
 
-# Set directory
-cd home/rstudio/kitematic/scRNA-seq_workflow
+# Get hisat2 for genome alignment
+wget ftp://ftp.ccb.jhu.edu/pub/infphilo/hisat2/downloads/hisat2-2.1.0-Linux_x86_64.zip
+unzip hisat2-2.1.0-Linux_x86_64.zip
 
-# Run STAR to align to genome 
-STAR --runThreadN 4 \
---genomeDir indices/STAR \
---readFilesIn data/fastqc_trimmed/* \
---outFileNamePrefix data/STAR/ \
+# Get human genome. For other species, find the link at ftp://ftp.ncbi.nlm.nih.gov/genomes/
+wget ftp://ftp.ncbi.nlm.nih.gov/genomes/Homo_sapiens/GFF/ref_GRCh38.p12_top_level.gff3.gz
 
-# Prep the human genome reference sequences
-mkdir -p data/GRCh38/sequence
-cd data/GRCh38/sequence/
-wget ftp://ftp.ensembl.org/pub/release-77/fasta/homo_sapiens/dna/Homo_sapiens.GRCh38.dna.chromosome.{1..22}.fa.gz
-wget ftp://ftp.ensembl.org/pub/release-77/fasta/homo_sapiens/dna/Homo_sapiens.GRCh38.dna.chromosome.{MT,X,Y}.fa.gz
-gunzip -c Homo_sapiens.GRCh38.dna.chromosome.* > GRCh38_r77.all.fa
-cd ../../../
 
-# Prep human genome annotations
-mkdir -p data/GRCh38/annotation
-cd data/GRCh38/annotation/
-wget ftp://ftp.ensembl.org/pub/release-77/gtf/homo_sapiens/Homo_sapiens.GRCh38.77.gtf.gz
-gunzip Homo_sapiens.GRCh38.77.gtf.gz
-cd ../../../
-mkdir -p data/GRCh38/star_indices_overhang100
-
-bin/star --runThreadN 4 \
---runMode genomeGenerate \
---genomeDir data/GRCh38/star_indices_overhang100/ \
---readFilesIn fastqc_trimmed/* \
---outFileNamePrefix STAR/ \
---sjdbGTFfile data/GRCh38/annotation/Homo_sapiens.GRCh38.77.gtf \
---sjdbOverhang 100
+hisat2 -x ref_GRCh38.p12_top_level.gff3.gz -1 sample_1.fq.gz -2 sample_2.fq.gz

@@ -3,7 +3,8 @@
 
 # Make directories
 mkdir data
-mkdir data/STAR
+mkdir data/raw_data
+mkdir data/aligned_reads
 mkdir data/fastqc_reports
 mkdir data/fastqc_trimmed
 
@@ -12,7 +13,7 @@ mkdir data/fastqc_trimmed
 # delete the -n argument.  
 
 # Download fastq data
-Rscript 0-download_fastq_data.R -d SRP079058 -n 10
+Rscript 0-download_fastq_data.R -i SRP079058 -n 10 -d data/raw_data
 
 # Run fastqc and get reports
 /bin/FastQC/fastqc raw_data/* --outdir data/fastqc_reports
