@@ -4,6 +4,8 @@
 # Get sequence quality reports from the FASTQC runs in a summary
 library(optparse)
 library(fastqcr)
+
+# Get options using optparse
 option_list <- list( 
 make_option(opt_str = c("-d", "--dir"), type = "character", default = NULL, 
             help = "Directory of the fastqc reports",

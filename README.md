@@ -44,11 +44,13 @@ Medulloblastoma - subclass of primitive neuroectodermal tumor
 *Preprocessing*: 
     sequence quality control: FASTQC
     adapter trimming: TrimGalore!, Prinseq
-    genome alignment: STAR
-    normalization: 
+    genome alignment: STAR or HISAT2
+    quantification: Salmon
+    normalization: SCnorm
     
 *Post-processing*: 
-    Seurat
+    RSeQC - quality control
+    Seurat - normalization and quality control, tSNE
     ASAP
     Falco
     Scone

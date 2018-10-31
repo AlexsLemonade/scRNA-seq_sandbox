@@ -1,4 +1,4 @@
-# CCDL ALSF 2018
+dockke# CCDL ALSF 2018
 # C. Savonen 
 # 
 # Get raw reads for the given SRP Id
