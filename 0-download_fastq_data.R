@@ -1,4 +1,4 @@
-dockke# CCDL ALSF 2018
+# CCDL ALSF 2018
 # C. Savonen 
 # 
 # Get raw reads for the given SRP Id
@@ -23,8 +23,9 @@ opt <- parse_args(OptionParser(option_list=option_list))
 dat.dir <- file.path(opt$dir)
 
 #------------------- Connect to NCBI's SRA SQL database------------------------#
-if (!file.exists("SRAmetadb.sqlite")) {
-    srafile <- getSRAdbFile()
+srafile <- "SRAmetadb.sqlite"
+if (!file.exists(srafile)) {
+    getSRAdbFile()
 }
 con <- dbConnect(RSQLite::SQLite(), srafile)
 
