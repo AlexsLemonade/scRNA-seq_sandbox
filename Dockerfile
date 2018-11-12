@@ -39,13 +39,17 @@ RUN apt-get update && \
 RUN apt-get install -y python-pip libpq-dev python-dev
 
 # Install the actual packages we will be using
+# Cutadapt is needed for TrimGalore
+# RSeQC is used for mapping quality control
 RUN pip install \
 	linux-utils \
-	cutadapt
+	numpy \
+	cutadapt \
+	RSeQC
 
 # Get FASTQC
-RUN  wget https://www.bioinformatics.babraham.ac.uk/projects/fastqc/fastqc_v0.11.8.zip
-RUN  unzip fastqc_v0.11.8.zip
+RUN wget https://www.bioinformatics.babraham.ac.uk/projects/fastqc/fastqc_v0.11.8.zip
+RUN unzip fastqc_v0.11.8.zip
 RUN chmod 755 FastQC/fastqc
 
 # Download and unzip TrimGalore
@@ -56,13 +60,3 @@ RUN chmod 755 TrimGalore-0.4.5/trim_galore
 # Install HISAT2 for genomic alignment
 RUN wget ftp://ftp.ccb.jhu.edu/pub/infphilo/hisat2/downloads/hisat2-2.1.0-Linux_x86_64.zip
 RUN unzip hisat2-2.1.0-Linux_x86_64.zip
-
-# Install Salmon
-RUN wget https://cmake.org/files/v3.8/cmake-3.8.2-Linux-x86_64.tar.gz
-RUN tar -zxvf cmake-3.8.2-Linux-x86_64.tar.gz
-RUN export PATH=<SALMON_INSTALLATION_DIRECTORY>/cmake-3.8.2-Linux-x86_64/bin:$PATH
-RUN cd cmake-3.8.2
-RUN ./configure --prefix=INSTALLATION_DIRECTORY
-RUN make
-RUN make install
-# RUN sudo apt-get install cmake
