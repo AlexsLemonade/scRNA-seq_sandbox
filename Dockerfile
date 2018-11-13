@@ -15,6 +15,7 @@ RUN apt-get update -qq && apt-get -y --no-install-recommends install \
   libssh2-1-dev \
   libsqlite-dev \
   python-dev \
+  parallel \
   && R -e "source('https://bioconductor.org/biocLite.R')" \
   && install2.r --error \
     --deps TRUE \
@@ -62,5 +63,9 @@ RUN wget ftp://ftp.ccb.jhu.edu/pub/infphilo/hisat2/downloads/hisat2-2.1.0-Linux_
 RUN unzip hisat2-2.1.0-Linux_x86_64.zip
 
 # Set up samtools
-RUN wget https://sourceforge.net/projects/samtools/files/samtools/0.1.18/samtools-0.1.18.tar.bz2/download
-RUN unzip samtools-0.1.18.tar.bz2
+RUN apt-get install libncurses5-dev
+RUN wget https://github.com/samtools/samtools/releases/download/1.3.1/samtools-1.3.1.tar.bz2 -O samtools.tar.bz2
+RUN tar -xjvf samtools.tar.bz2
+RUN cd samtools-{version}
+RUN make
+RUN sudo make prefix=/usr/local/bin install

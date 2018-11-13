@@ -56,3 +56,17 @@ do
 -S ../aligned_reads/${f}.bam
 done
 
+#--------------------Further prep the bam files with samtools------------------#
+# Change to directory where bam files are
+cd ../aligned_reads
+# Sort and index bam files
+for f in `ls *.bam | sed 's/.bam//' `
+do
+/samtools-1.3.1/samtools sort ${f}.bam -o ${f}.sorted.bam
+/samtools-1.3.1/samtools index ${f}.bam
+done
+
+
+# Index bam files
+parallel /samtools-1.3.1/samtools sort ::: aligned_reads/*.bam -o aligned_reads/*.sorted.bam
+parallel /samtools-1.3.1/samtools index ::: aligned_reads/*.bam
