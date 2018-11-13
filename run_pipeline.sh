@@ -2,12 +2,13 @@
 # Note, change the directory to where you want these things to appear before running this code.
 
 # Make directories
-mkdir results
 mkdir data
 mkdir data/raw_data
 mkdir data/aligned_reads
 mkdir data/fastqc_reports
 mkdir data/fastqc_trimmed
+mkdir results
+mkdir results/map_qc
 
 #--------------------------- Download fastq data-------------------------------#
 # Note: because running all ~3800 samples takes quite a bit of time, this 

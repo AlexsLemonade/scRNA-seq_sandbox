@@ -60,3 +60,7 @@ RUN chmod 755 TrimGalore-0.4.5/trim_galore
 # Install HISAT2 for genomic alignment
 RUN wget ftp://ftp.ccb.jhu.edu/pub/infphilo/hisat2/downloads/hisat2-2.1.0-Linux_x86_64.zip
 RUN unzip hisat2-2.1.0-Linux_x86_64.zip
+
+# Set up samtools
+RUN wget https://sourceforge.net/projects/samtools/files/samtools/0.1.18/samtools-0.1.18.tar.bz2/download
+RUN unzip samtools-0.1.18.tar.bz2
