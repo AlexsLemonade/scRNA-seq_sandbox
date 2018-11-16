@@ -4,12 +4,14 @@
 # Make directories
 mkdir data
 mkdir data/raw_data
-mkdir data/aligned_reads
 mkdir data/fastqc_reports
 mkdir data/fastqc_trimmed
+mkdir data/aligned_reads
+mkdir data/sorted_bams
+mkdir data/fpkms
 mkdir results
 mkdir results/map_qc
-
+mkdir results/salmon_quants
 #--------------------------- Download fastq data-------------------------------#
 # Note: because running all ~3800 samples takes quite a bit of time, this 
 # example run is set to only run 10 samples. When you want to run the full set, 
@@ -57,16 +59,39 @@ do
 done
 
 #--------------------Further prep the bam files with samtools------------------#
-# Change to directory where bam files are
+# This is a temporary fix until I figure out how to make the docker file do this
+cd /samtools-1.3.1
+make prefix=/bin/bash
+
 cd ../aligned_reads
 # Sort and index bam files
 for f in `ls *.bam | sed 's/.bam//' `
 do
 /samtools-1.3.1/samtools sort ${f}.bam -o ${f}.sorted.bam
-/samtools-1.3.1/samtools index ${f}.bam
+/samtools-1.3.1/samtools index ${f}.sorted.bam -o ${f}
 done
 
+# Can sort files in parallel to make it a tad faster (but will still take a couple hours)
+# ls aligned_reads/*.bam | sed 's/.bam//' | parallel "/samtools-1.3.1/samtools sort {.}.bam -o {.}.sorted.bam"
 
-# Index bam files
-parallel /samtools-1.3.1/samtools sort ::: aligned_reads/*.bam -o aligned_reads/*.sorted.bam
-parallel /samtools-1.3.1/samtools index ::: aligned_reads/*.bam
+#-------------------- Quantify with Salmon ------------------------------------#
+# Now with Salmon instead! And we will compare the performance
+# Get the human transcriptome
+curl ftp://ftp.ensembl.org/pub/release-94/fasta/homo_sapiens/cdna/Homo_sapiens.GRCh38.cdna.all.fa.gz -o human.fa.gz
+
+# Index the human transcriptome
+salmon index -t human.fa.gz -i human_index
+
+# Go to our trimmed read data
+cd data/trimmed_reads
+
+# Quantify each sample with salmon
+for f in `ls *_1_val_1.fq.gz | sed 's/_1_val_1.fq.gz//' `
+do
+samp=`basename ${fn}`
+echo "Processing sample ${samp}"
+salmon quant -i human_index -l A \
+-1 ${fn}/${samp}_1_val_1.fq.gz \
+-2 ${fn}/${samp}_2_val_2.fq.gz \
+-p 8 -o salmon_quants/${samp}_quant
+done

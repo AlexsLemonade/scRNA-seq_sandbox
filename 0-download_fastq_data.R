@@ -23,7 +23,7 @@ opt <- parse_args(OptionParser(option_list=option_list))
 dat.dir <- file.path(opt$dir)
 
 #------------------- Connect to NCBI's SRA SQL database------------------------#
-srafile <- "SRAmetadb.sqlite"
+srafile <- "data/SRAmetadb.sqlite"
 if (!file.exists(srafile)) {
     getSRAdbFile()
 }
