@@ -76,22 +76,37 @@ done
 
 #-------------------- Quantify with Salmon ------------------------------------#
 # Now with Salmon instead! And we will compare the performance
+cd data
+mkdir salmon_quants
+
 # Get the human transcriptome
-curl ftp://ftp.ensembl.org/pub/release-94/fasta/homo_sapiens/cdna/Homo_sapiens.GRCh38.cdna.all.fa.gz -o human.fa.gz
+curl ftp://ftp.ebi.ac.uk/pub/databases/gencode/Gencode_human/release_29/gencode.v29.pc_transcripts.fa.gz \
+-o gencode.v29.pc_transcripts.fa.gz
+
+#curl ftp://ftp.ebi.ac.uk/pub/databases/gencode/Gencode_human/release_29/gencode.v29.lncRNA_transcripts.fa.gz \
+# -o gencode.v29.lncRNA_transcripts.fa.gz
+# curl ftp://ftp.ensembl.org/pub/release-94/fasta/homo_sapiens/cdna/Homo_sapiens.GRCh38.cdna.abinitio.fa.gz \
+# -o Homo_sapiens.GRCh38.cdna.abinitio.fa.gz
 
 # Index the human transcriptome
-salmon index -t human.fa.gz -i human_index
-
+# Using abinitio because .all. appears to be too much to index and the process ends 
+# up being "Killed." The option --perfectHash can help with this, but only to a certain extent. 
+salmon --threads=16 --no-version-check index \
+-t gencode.v29.pc_transcripts.fa.gz \
+-i human_index \
+--perfectHash -k 31 \
+ --type quasi
+ 
 # Go to our trimmed read data
-cd data/trimmed_reads
+cd fastqc_trimmed
 
 # Quantify each sample with salmon
 for f in `ls *_1_val_1.fq.gz | sed 's/_1_val_1.fq.gz//' `
 do
-samp=`basename ${fn}`
-echo "Processing sample ${samp}"
-salmon quant -i human_index -l A \
--1 ${fn}/${samp}_1_val_1.fq.gz \
--2 ${fn}/${samp}_2_val_2.fq.gz \
--p 8 -o salmon_quants/${samp}_quant
+echo "Processing sample ${f}"
+salmon quant -i ../human_index -l A \
+-1 ${f}_1_val_1.fq.gz \
+-2 ${f}_2_val_2.fq.gz \
+-p 8 -o ../salmon_quants/${f}_quant
+--gcBias --seqBias --biasSpeedSamp 5
 done
