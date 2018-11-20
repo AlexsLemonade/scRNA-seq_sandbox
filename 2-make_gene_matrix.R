@@ -10,6 +10,7 @@ if (!requireNamespace("BiocManager", quietly = TRUE))
 BiocManager::install("Rsubread", version = "3.8")
 
 library(Rsubread)
+library(org.Hs.eg.db)
 
 # Set directory
 setwd(file.path("data", "aligned_reads"))
@@ -32,14 +33,25 @@ dimnames(hisat.data)[[2]] <- gsub("\\.bam", "", bam.files)
 # Make an annotation matrix
 hisat.annot <- hisat[[1]]$annotation
 
+# Get the ensembl gene ids that correspond to the entrez gene ids
+hisat.data <- data.frame('ensembl' = mapIds(org.Hs.eg.db, keys = rownames(hisat.data), 
+                                            column = "ENSEMBL", keytype = "ENTREZID"),
+                         'gene' = mapIds(org.Hs.eg.db, keys = rownames(hisat.data), 
+                                            column = "SYMBOL", keytype = "ENTREZID"),
+                         hisat.data, stringsAsFactors = FALSE)
+
+# Save HISAT to an RDS file
+saveRDS(hisat.data, file = file.path("..", "..", "results", "hisat.data.RDS"))
+
 # Get the proportion of mapped reads
 hisat.prop.assigned <- vapply(hisat, function(x){
                         x$stat[1,2]/sum(x$stat[1:2,2])},
                         FUN.VALUE = 1)
 
+setwd("../")
 #------------------------------Import Salmon reads----------------------------#
 # Check out the salmon files
-setwd(file.path("..", "salmon_quants"))
+setwd(file.path("data", "salmon_quants"))
 
 # Get the names of all the folders
 salmon.folders <- dir() 
@@ -57,27 +69,14 @@ dimnames(salmon.data)[[2]] <- gsub("_quant", "", salmon.folders)
 # Get Salmon ensembl gene annotation IDs
 salmon.annot <- strsplit(as.character(salmon[[1]]$Name), "\\|")
 salmon.annot <- lapply(salmon.annot, function(x) grep("ENSG", x, value = TRUE))
+salmon.annot <- gsub("\\.[0-9]+$", "", unlist(salmon.annot))
 
 # Make into a make annotation into a dataframe
-salmon.annot <- data.frame('ensembl' = unlist(salmon.annot), salmon[[1]][,2:3],
+salmon.data <- data.frame('ensembl' = salmon.annot,
+                          'gene' = mapIds(org.Hs.eg.db, keys = salmon.annot, 
+                                          column = "SYMBOL", keytype = "ENSEMBL"),
+                           salmon.data,
                            stringsAsFactors = FALSE)
 
-#-------------------------Compare Salmon with HISAT2---------------------------#
-library(org.Hs.eg.db)
-
-# Make sure samples are in the same order:
-all(match(dimnames(salmon.data)[[2]], dimnames(hisat.data)[[2]]) == 1:ncol(hisat.data))
-
-hisat.data <- data.frame('ensembl' = mapIds(org.Hs.eg.db, keys = rownames(hisat.data), 
-                                                column = "ENSEMBL", keytype = "ENTREZID"),
-                          hisat.data)
-
-
-annot.df <- transform(merge(symbol.df, df, by = "row.names"),
-                      row.names = Row.names, Row.names = NULL)
-
-
-
-
-
-
+# Save to an RDS file
+saveRDS(salmon.data, file = file.path("..", "..", "results", "salmon.data.RDS"))

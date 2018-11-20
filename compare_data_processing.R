@@ -1,25 +1,94 @@
 # C. Savonen 
 # CCDL ALSF 2018 
-# Normalization of single-cell RNA-seq data
+# Purpose: Compare author processed data, Salmon processed, and HISAT2 processed
 # 
-# 
-df <- CreateSeuratObject(raw.data = "", project = "glioblastoma")
+#-------------------------------Import Data------------------------------------#
+library(GEOquery)
+geo.meta <- getGEO("GSE84465", destdir = "data")
+gunzip("data/GSE84465_series_matrix.txt.gz")
 
-AddMetaData(object = "meta", metadata = "meta", col.name = "meta")
+if (!file.exists("SRA.to.GSM.RDS")){
+# Get geo metadata
+samples <- geo.meta[[1]]@phenoData@data$geo_accession
 
-# Make a violin plot
-VlnPlot(object = pbmc, features.plot = c("nGene", "nUMI", "percent"), nCol = 3)
+# Get the damn SRA id from the webpage
+sra <- lapply(samples, function(x) {
+    sample.page <- readLines(paste0("https://www.ncbi.nlm.nih.gov/geo/query/acc.cgi?acc=", x))
+    sample.sra <- grep("SRA", sample.page)
+    sra.id <- unlist(sample.page[sample.sra[2]+1])
+    start.id <- regexpr("term=", sra.id)[1] + 5
+    stop.id <- regexpr("\">", sra.id)[1] - 1
+    return(substr(sra.id, start.id, stop.id))
+    })
 
-# plot the genes
-GenePlot(object = pbmc, gene1 = "nUMI", gene2 = "nGene")
+sra.gsm <- as.list(samples)
+names(sra.gsm) <- unlist(sra)
+saveRDS(sra.gsm, file = "SRA.to.GSM.RDS")
 
-data.filtered <- FilterCells(object = df, subset.names = c("nGene", "percent"), 
-                             low.thresholds = c(200, -Inf),
-                             high.thresholds = c(2500, 0.05))
+} else {
+sra.gsm <- readRDS("SRA.to.GSM.RDS")
+}
 
-pbmc <- NormalizeData(object = pbmc, normalization.method = "LogNormalize", 
-                      scale.factor = 10000)
+# Get author normalized data
+download.file("https://www.ncbi.nlm.nih.gov/geo/download/?acc=GSE84465&format=file&file=GSE84465%5FGBM%5FAll%5Fdata%2Ecsv%2Egz", destfile = "data/GSE84465.csv.gz")
+gunzip("data/GSE84465.csv.gz")
 
-pbmc <- FindVariableGenes(object = pbmc, mean.function = ExpMean, 
-                          dispersion.function = LogVMR, 
-                          x.low.cutoff = 0.0125, x.high.cutoff = 3, y.cutoff = 0.5)
+# Import all the different datasets
+author.data <- read.csv("data/GSE84465.csv", stringsAsFactors = FALSE)
+colnames(author.data) <- samples
+
+# Load in file that contains both SRA and SRX IDs
+sra.srx <- read.csv("SRA.files.csv")
+
+# Load in Salmon quantification
+salmon.data <- readRDS(file.path("results", "salmon.data.RDS"))
+
+# Obtain GSM ids
+gsm.ids <- dplyr::recode(sra.srx$experiment[match(
+  colnames(salmon.data)[-1], sra.srx$run)], !!!sra.gsm)
+
+# Make these the column names 
+colnames(salmon.data)[-1] <- as.character(gsm.ids)
+
+# Load in hisat data
+hisat.data <- readRDS(file.path("results", "hisat.data.RDS"))
+
+# Obtain GSM ids
+gsm.ids <- dplyr::recode(sra.srx$experiment[match(
+  colnames(hisat.data)[-1], sra.srx$run)], !!!sra.gsm)
+
+# Make these the colnames
+colnames(hisat.data)[-1] <- as.character(gsm.ids)
+
+#------------------------Compare hisat and author data-------------------------#
+# Correlate hisat and author processed data
+sample.ind <- match(colnames(hisat.data)[-c(1:2)],
+                    colnames(author.data))
+gene.ind <- match(hisat.data$gene,
+                  rownames(author.data))
+
+Rsqs <- c()
+
+for (i in 1:length(sample.ind)) {
+# Correlate the two datasets
+Rsq <- cor(hisat.data[!is.na(gene.ind),-c(1:2)][,i], author.data[gene.ind[!is.na(gene.ind)], sample.ind][,i])
+
+# Keep all the Rsq's
+Rsqs <- c(Rsqs, Rsq)
+
+# Save scatterplot to jpeg
+jpeg(paste0("../results/Sample", i , ".jpeg"))
+plot(hisat.data[!is.na(gene.ind),-c(1:2)][,i],
+     author.data[gene.ind[!is.na(gene.ind)], sample.ind][,i],
+     xlab = paste0("HISAT"),
+     ylab = paste0("Original"),
+     main = paste0("R = ", round(Rsq, 3)))
+dev.off()
+}
+
+# Correlate salmon and author processed data
+sample.ind <- match(dimnames(salmon.data)[[2]], dimnames(author.data)[[2]])
+corr(salmon.data, author.data[gene.id, sample.ind])
+
+
+

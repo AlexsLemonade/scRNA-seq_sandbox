@@ -19,7 +19,7 @@ option_list <- list(
               help="If you'd like to only use a portion of the samples,
               state the max number you'd like to download.")
 )
-opt <- parse_args(OptionParser(option_list=option_list))
+opt <- parse_args(OptionParser(option_list = option_list))
 dat.dir <- file.path(opt$dir)
 
 #------------------- Connect to NCBI's SRA SQL database------------------------#
@@ -31,6 +31,7 @@ con <- dbConnect(RSQLite::SQLite(), srafile)
 
 # Get a list of the samples associated with the project we are interested in
 files <- listSRAfile(opt$id, con)
+write.csv(files, "SRA.files.csv")
 
 # If we want to restrict the number of samples being processed:
 if (!is.null(opt$number)){
@@ -44,3 +45,4 @@ if (!dir.exists(dat.dir)){
   dir.create(dat.dir)
 }
 getFASTQfile(files, con, destDir = dat.dir)
+
