@@ -10,7 +10,8 @@ library(optparse)
 
 option_list <- list( 
   make_option(opt_str = c("-i", "--id"), type = "character", default = NULL,
-              help = "SRP ID of the RNA-seq data you would like to download",
+              help = "SRP ID of the RNA-seq data you would like to download
+              eg. SRP079058",
               metavar = "character"),
   make_option(opt_str = c("-d", "--dir"), type = "character", default = getwd(),
               help = "directory where you would like the data downloaded to go",
@@ -23,7 +24,7 @@ opt <- parse_args(OptionParser(option_list = option_list))
 dat.dir <- file.path(opt$dir)
 
 #------------------- Connect to NCBI's SRA SQL database------------------------#
-srafile <- "data/SRAmetadb.sqlite"
+srafile <- file.path("data", "SRAmetadb.sqlite")
 if (!file.exists(srafile)) {
     getSRAdbFile()
 }
@@ -31,7 +32,7 @@ con <- dbConnect(RSQLite::SQLite(), srafile)
 
 # Get a list of the samples associated with the project we are interested in
 files <- listSRAfile(opt$id, con)
-write.csv(files, "SRA.files.csv")
+write.csv(files, file.path("data", "SRA.files.csv"))
 
 # If we want to restrict the number of samples being processed:
 if (!is.null(opt$number)){

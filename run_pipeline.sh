@@ -7,11 +7,10 @@ mkdir data/raw_data
 mkdir data/fastqc_reports
 mkdir data/fastqc_trimmed
 mkdir data/aligned_reads
-mkdir data/sorted_bams
-mkdir data/fpkms
+mkdir data/salmon_quants
 mkdir results
 mkdir results/map_qc
-mkdir results/salmon_quants
+
 #--------------------------- Download fastq data-------------------------------#
 # Note: because running all ~3800 samples takes quite a bit of time, this 
 # example run is set to only run 10 samples. When you want to run the full set, 
@@ -58,26 +57,9 @@ do
 -S ../aligned_reads/${f}.bam
 done
 
-#--------------------Further prep the bam files with samtools------------------#
-# This is a temporary fix until I figure out how to make the docker file do this
-cd /samtools-1.3.1
-make prefix=/bin/bash
-
-cd ../aligned_reads
-# Sort and index bam files
-for f in `ls *.bam | sed 's/.bam//' `
-do
-/samtools-1.3.1/samtools sort ${f}.bam -o ${f}.sorted.bam
-/samtools-1.3.1/samtools index ${f}.sorted.bam -o ${f}
-done
-
-# Can sort files in parallel to make it a tad faster (but will still take a couple hours)
-# ls aligned_reads/*.bam | sed 's/.bam//' | parallel "/samtools-1.3.1/samtools sort {.}.bam -o {.}.sorted.bam"
-
 #-------------------- Quantify with Salmon ------------------------------------#
 # Now with Salmon instead! And we will compare the performance
-cd data
-mkdir salmon_quants
+cd ../data
 
 # Get the human transcriptome
 curl ftp://ftp.ebi.ac.uk/pub/databases/gencode/Gencode_human/release_29/gencode.v29.pc_transcripts.fa.gz \
@@ -85,6 +67,7 @@ curl ftp://ftp.ebi.ac.uk/pub/databases/gencode/Gencode_human/release_29/gencode.
 
 #curl ftp://ftp.ebi.ac.uk/pub/databases/gencode/Gencode_human/release_29/gencode.v29.lncRNA_transcripts.fa.gz \
 # -o gencode.v29.lncRNA_transcripts.fa.gz
+
 # curl ftp://ftp.ensembl.org/pub/release-94/fasta/homo_sapiens/cdna/Homo_sapiens.GRCh38.cdna.abinitio.fa.gz \
 # -o Homo_sapiens.GRCh38.cdna.abinitio.fa.gz
 

@@ -26,7 +26,8 @@ RUN apt-get update -qq && apt-get -y --no-install-recommends install \
     optparse \
     fastqcr \
     rbamtools \
-  && R -e "BiocInstaller::biocLite(c('SRAdb', 'DBI'), suppressUpdates = TRUE)"
+    BiocManager \
+  && R -e "BiocInstaller::biocLite(c('SRAdb', 'DBI'), suppressUpdates = TRUE);BiocManager::install("Rsubread")" \
 
 RUN apt-get update && apt-get install -y \
 	dialog \

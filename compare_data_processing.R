@@ -2,92 +2,92 @@
 # CCDL ALSF 2018 
 # Purpose: Compare author processed data, Salmon processed, and HISAT2 processed
 # 
-#-------------------------------Import Data------------------------------------#
 library(GEOquery)
-geo.meta <- getGEO("GSE84465", destdir = "data")
-gunzip("data/GSE84465_series_matrix.txt.gz")
 
-if (!file.exists("SRA.to.GSM.RDS")){
+# Magrittr pipe
+`%>%` <- dplyr::`%>%`
+
+#-----------------------------Import Author GEO Data---------------------------#
 # Get geo metadata
-samples <- geo.meta[[1]]@phenoData@data$geo_accession
-
-# Get the damn SRA id from the webpage
-sra <- lapply(samples, function(x) {
-    sample.page <- readLines(paste0("https://www.ncbi.nlm.nih.gov/geo/query/acc.cgi?acc=", x))
-    sample.sra <- grep("SRA", sample.page)
-    sra.id <- unlist(sample.page[sample.sra[2]+1])
-    start.id <- regexpr("term=", sra.id)[1] + 5
-    stop.id <- regexpr("\">", sra.id)[1] - 1
-    return(substr(sra.id, start.id, stop.id))
-    })
-
-sra.gsm <- as.list(samples)
-names(sra.gsm) <- unlist(sra)
-saveRDS(sra.gsm, file = "SRA.to.GSM.RDS")
-
-} else {
-sra.gsm <- readRDS("SRA.to.GSM.RDS")
-}
+geo.meta <- getGEO("GSE84465", destdir = "data")
 
 # Get author normalized data
-download.file("https://www.ncbi.nlm.nih.gov/geo/download/?acc=GSE84465&format=file&file=GSE84465%5FGBM%5FAll%5Fdata%2Ecsv%2Egz", destfile = "data/GSE84465.csv.gz")
+if (!(file.exists(file.path("data", "GSE84465.csv")))) {
+download.file("https://www.ncbi.nlm.nih.gov/geo/download/?acc=GSE84465&format=file&file=GSE84465%5FGBM%5FAll%5Fdata%2Ecsv%2Egz",
+              destfile = file.path("data", "GSE84465.csv.gz"))
 gunzip("data/GSE84465.csv.gz")
+}
 
 # Import all the different datasets
-author.data <- read.csv("data/GSE84465.csv", stringsAsFactors = FALSE)
-colnames(author.data) <- samples
+author.data <- read.table(file.path("data", "GSE84465.csv"), sep = " ",
+                          stringsAsFactors = FALSE) %>% 
+                          tibble::rownames_to_column("gene")
 
-# Load in file that contains both SRA and SRX IDs
-sra.srx <- read.csv("SRA.files.csv")
+#------------------------------Create ID conversion key------------------------#
+# Get the GSM and SRX ids from the GEO metadata
+id.key <- data.frame(gsm.ids = geo.meta[[1]]@phenoData@data$geo_accession,
+                     srx.ids = stringr::word(geo.meta[[1]]@phenoData@data$relation.1,
+                                             start = 2, sep = "term="))
+# Get SRR to SRX conversion key
+sra.files <- read.csv(file.path("data", "SRA.files.csv"))[, -1]
 
-# Load in Salmon quantification
+# Merge both keys into a single id.key dataframe
+id.key <- merge(id.key, sra.files, by.x = "srx.ids", by.y = "experiment")
+
+# Save this dataframe for later
+saveRDS(id.key, file = file.path("data", "sample_id_key.RDS"))
+
+# Make our conversion key 
+sra.gsm <- as.list(as.character(id.key$gsm.ids))
+names(sra.gsm) <- as.character(id.key$run)
+
+#----------------------------- Set up Salmon data------------------------------#
 salmon.data <- readRDS(file.path("results", "salmon.data.RDS"))
 
-# Obtain GSM ids
-gsm.ids <- dplyr::recode(sra.srx$experiment[match(
-  colnames(salmon.data)[-1], sra.srx$run)], !!!sra.gsm)
+# Obtain GSM ids using conversion key and make these the column names 
+colnames(salmon.data) <- dplyr::recode(colnames(salmon.data), !!!sra.gsm)
 
-# Make these the column names 
-colnames(salmon.data)[-1] <- as.character(gsm.ids)
-
-# Load in hisat data
+#---------------------------Set up HISAT2 mapped data--------------------------#
 hisat.data <- readRDS(file.path("results", "hisat.data.RDS"))
 
-# Obtain GSM ids
-gsm.ids <- dplyr::recode(sra.srx$experiment[match(
-  colnames(hisat.data)[-1], sra.srx$run)], !!!sra.gsm)
-
-# Make these the colnames
-colnames(hisat.data)[-1] <- as.character(gsm.ids)
+# Obtain GSM ids using conversion key and make these the column names 
+colnames(hisat.data) <- dplyr::recode(colnames(hisat.data), !!!sra.gsm)
 
 #------------------------Compare hisat and author data-------------------------#
 
-compareData <- function (data = data, org.data = author.data, label = "label") {
+compareData <- function (data1 = data1, data2 = data2, label = "label") {
+  # Uses correlation and PCA to compare two datasets
+  #
+  # Args:
+  #   data1: a dataset to compare to data2, must have colnames that are "GSM" 
+  #          and a column labeled "gene" that contains gene ids to match to data2
+  #   data2: a dataset to compare to data1, must have colnames that are "GSM" 
+  #          and a column labeled "gene" that contains gene ids to match to data2
+  #   label: what label you would like the output to have
+  #
+  # Returns:
+  #   PCA of data combined
+  #   Gene quantification correlations of samples that are in both datasets 
 
-# Get genes 
-genes <- data$gene
+# Only keep samples that are in both datasets
+xx <- data1 %>% filter(as.name(column) == colnames(data2))
+xx <- data2 %>% filter(as.name(column) == colnames(data1))
 
-# Only look at the data columns that are samples
-data <- data[, grep("GSM", colnames(data))]
+# Change column names so when we merge data1 has distinct column names
+colnames(data1) <- paste0(colnames(data1), label)
 
-# Get indices of matching samples and genes
-sample.ind <- match(colnames(data),
-                    colnames(org.data))
-gene.ind <- match(genes,
-                  rownames(org.data))
+# Join datasets into one
+combined <- inner_join(data1, data2, by = "gene")
 
-# Combine the data into one dataset
-combined <- cbind(data[!is.na(gene.ind),], 
-org.data[gene.ind[!is.na(gene.ind)], sample.ind])
-
-process <- as.factor(c(rep(label, ncol(data)), rep("original", ncol(org.data))))
+# Make labels for which data is processed which way
 pca <- prcomp(t(combined))
 
 # This function will plot the distribution of the PC scores looks like and label samples by the different variables' different factor levels
-pc.plot <- function(dat,var){
-  colz <- colors(distinct=TRUE)[runif(length(levels(var)),min=1,max=length(colors(distinct=TRUE)))]
-  plot(dat,pch=21,bg=colz[var]);
-  legend(x="topleft", legend = levels(var),fill=colz,cex=.8)
+pc.plot <- function(dat, var){
+  colz <- colors(distinct = TRUE)[runif(length(levels(var)), min = 1,
+                                        max = length(colors(distinct=TRUE)))]
+  plot(dat,pch = 21, bg = colz[var]);
+  legend(x = "topleft", legend = levels(var), fill = colz, cex = 0.8)
 }
 
 # Print out a PCA plot
@@ -109,13 +109,14 @@ Rsqs <- c()
     jpeg(file.path("..", "results", paste0("Sample", sample, label, ".jpeg")))
     plot(data[!is.na(gene.ind),][,sample],
      org.data[gene.ind[!is.na(gene.ind)], sample.ind][,sample],
-     xlab = paste0("HISAT"),
+     xlab = paste0(label),
      ylab = paste0("Original"),
      main = paste0("R = ", round(Rsq, 3)))
     dev.off()
     }
 
 }
+
 # Run this with the hisat data
 compareData(hisat.data, author.data, "HISAT")
 

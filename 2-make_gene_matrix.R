@@ -2,22 +2,32 @@
 # CCDL for ALSF 
 #
 # Purpose: Make gene matrix and do quality testing 
-# Compare Salmon vs traditional mapping alignment 
 
-# Use Subread's R package to analyze the bam files
-if (!requireNamespace("BiocManager", quietly = TRUE))
-  install.packages("BiocManager")
-BiocManager::install("Rsubread", version = "3.8")
-
+# Attach necessary libraries
 library(Rsubread)
 library(org.Hs.eg.db)
+library(optparse)
+
+#------------------------Get options using optparse----------------------------#
+option_list <- list( 
+  make_option(opt_str = c("-d", "--dir"), type = "character", default = NULL, 
+              help = "Directory of the fastqc reports",
+              metavar = "character"),
+  make_option(opt_str = c("-o", "--output"), type = "character", 
+              default = getwd(), 
+              help = "Directory where results should be placed",
+              metavar = "character"))
+
+opt <- parse_args(OptionParser(option_list = option_list))
+
 
 # Set directory
 setwd(file.path("data", "aligned_reads"))
 bam.files <- grep("\\.bam$", dir(), value = TRUE)
 
+#-------------------------Get counts for HISAT Data----------------------------#
 # Get the counts of all the gene features for each sample
-# If you are using a non common genome, can use ext.ann argument to give your own 
+# If you are using a non-common genome, can use ext.ann argument to give your own 
 # GTF or other file. 
 
 hisat <- lapply(bam.files, function(x) {
@@ -43,10 +53,16 @@ hisat.data <- data.frame('ensembl' = mapIds(org.Hs.eg.db, keys = rownames(hisat.
 # Save HISAT to an RDS file
 saveRDS(hisat.data, file = file.path("..", "..", "results", "hisat.data.RDS"))
 
+#--------------------------Proportion of mapped reads--------------------------#
 # Get the proportion of mapped reads
 hisat.prop.assigned <- vapply(hisat, function(x){
                         x$stat[1,2]/sum(x$stat[1:2,2])},
                         FUN.VALUE = 1)
+
+# Make a histogram of this information
+png("proportion_reads_assigned_hist.png")
+hist(hisat.prop.assigned, main = "Proportion of Assigned Reads", breaks = 20)
+dev.off()
 
 setwd("../")
 #------------------------------Import Salmon reads----------------------------#
