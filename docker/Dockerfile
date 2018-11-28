@@ -26,9 +26,12 @@ RUN apt-get update -qq && apt-get -y --no-install-recommends install \
     optparse \
     fastqcr \
     rbamtools \
-    BiocManager \
-  && R -e "BiocInstaller::biocLite(c('SRAdb', 'DBI'), suppressUpdates = TRUE);BiocManager::install("Rsubread")" \
+  && R -e "BiocInstaller::biocLite(c('SRAdb', 'DBI'), suppressUpdates = TRUE)" 
 
+# Install Rsubread by itself
+RUN R -e 'source("http://bioconductor.org/biocLite.R"); biocLite("Rsubread")'
+
+# Install other things
 RUN apt-get update && apt-get install -y \
 	dialog \
 	unzip \
