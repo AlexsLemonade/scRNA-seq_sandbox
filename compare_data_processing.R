@@ -65,8 +65,8 @@ convert.key <- as.list(as.character(id.key$gsm.ids))
 names(convert.key) <- as.character(id.key$run)
 
 # Import datasets from their RDS files
-salmon.data <- readRDS(file.path("results", "salmon.data.RDS"))
-hisat.data <- readRDS(file.path("results", "hisat.data.RDS"))
+salmon.data <- readRDS(file.path("data", "salmon.ensembl.data.RDS"))
+hisat.data <- readRDS(file.path("data", "hisat.data.RDS"))
 
 # Obtain GSM ids using conversion key and make these the column names 
 colnames(salmon.data) <- dplyr::recode(colnames(salmon.data), !!!convert.key)
@@ -120,7 +120,7 @@ compareData <- function (data1 = data1, data2 = data2, label1 = "1", label2 = "2
   pca <- prcomp(t(combined[, -1]))
 
   # Print out a PCA plot
-  png(file.path("results", paste0("PCA", label1, "vs", label2, ".png")))
+  png(file.path("results", paste0("PCA_", label1, "_vs_", label2, ".png")))
   pc.plot(pca$x, datasets)
   dev.off()
   
@@ -147,8 +147,9 @@ compareData <- function (data1 = data1, data2 = data2, label1 = "1", label2 = "2
     return(sample.corr)  
     }, FUN.VALUE = 1)
 
-  png(file.path( "results", paste0("hist_sample_corrs", label1,"vs", label2, ".png")))
-  hist(sample.corrs)
+  # Plot sample correlations on a histogram so we can get an overall picture
+  png(file.path( "results", paste0("hist_sample_corrs_", label1,"_vs_", label2, ".png")))
+  hist(sample.corrs, xlab = "", main = paste(label1, "vs", label2, "Sample Correlations"), breaks = 20)
   dev.off()
 }
 
@@ -157,8 +158,3 @@ compareData(data1 = hisat.data, data2 = author.data, label1 = "HISAT", label2 = 
 
 # Run this with the salmon data
 compareData(data1 = salmon.data, data2 =  author.data, label1 = "Salmon", label2 = "author_data")
-
-data1 <- hisat.data
-data2 <- author.data
-label1 <- "hisat"
-label2 <- "author"
