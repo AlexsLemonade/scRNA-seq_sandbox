@@ -109,7 +109,7 @@ salmon.data <- data.frame('ensembl' = rownames(salmon.data),
                            stringsAsFactors = FALSE)
 
 # Save to an RDS file
-saveRDS(salmon.data, file = file.path("..", "salmon.ensembl.data.RDS"))
+saveRDS(salmon.data, file = file.path("..", "salmon.data.RDS"))
 
 #---------------------Salmon proportion of mapped reads------------------------#
 # Get the proportion of mapped reads

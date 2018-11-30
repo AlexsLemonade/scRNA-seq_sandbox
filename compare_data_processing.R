@@ -23,7 +23,11 @@ if (!file.exists(file.path("data", "sample_id_key.RDS"))) {
 
   # Save this dataframe for later
   saveRDS(id.key, file = file.path("data", "sample_id_key.RDS"))
-
+  
+  # Save the rest of the metadata as a csv
+  geo.meta <- data.frame(geo.meta[[1]]@phenoData@data)
+  write.csv(geo.meta, file = file.path("data", "meta_data.csv"))
+  
   rm(geo.meta)
   } else {
   id.key <- readRDS(file.path("data", "sample_id_key.RDS"))
