@@ -4,7 +4,8 @@
 # 
 # Magrittr pipe
 `%>%` <- dplyr::`%>%`
-setwd("scRNA-seq_workflow")
+setwd("../..")
+
 #--------------------------- Create ID conversion key--------------------------#
 if (!file.exists(file.path("data", "sample_id_key.RDS"))) {
   # Get geo metadata
@@ -69,7 +70,7 @@ convert.key <- as.list(as.character(id.key$gsm.ids))
 names(convert.key) <- as.character(id.key$run)
 
 # Import datasets from their RDS files
-salmon.data <- readRDS(file.path("data", "salmon.ensembl.data.RDS"))
+salmon.data <- readRDS(file.path("data", "salmon.data.RDS"))
 hisat.data <- readRDS(file.path("data", "hisat.data.RDS"))
 
 # Obtain GSM ids using conversion key and make these the column names 
