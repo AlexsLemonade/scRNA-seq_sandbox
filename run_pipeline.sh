@@ -4,6 +4,7 @@
 # Make directories
 mkdir data
 mkdir data/raw_data
+mkdir data/aligned_reads
 mkdir data/fastqc_reports
 mkdir data/salmon_quants
 mkdir results
