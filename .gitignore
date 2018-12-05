@@ -2,8 +2,9 @@
 .RData
 .Rhistory
 .DS_Store
-results/
 
 
 # Ignore data, there’s too much of it
 data
+docker
+results
