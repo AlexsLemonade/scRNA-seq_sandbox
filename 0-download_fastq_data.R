@@ -2,15 +2,16 @@
 # C. Savonen 
 # 
 # Get raw reads for the given SRP Id
-#
+# Magrittr pipe
+`%>%` <- dplyr::`%>%`
 #-------------------------- Get necessary packages-----------------------------#
 library(SRAdb)
-library(DBI)
 library(optparse)
 
 option_list <- list( 
   make_option(opt_str = c("-i", "--id"), type = "character", default = NULL,
-              help = "SRP ID of the RNA-seq data you would like to download",
+              help = "SRP ID of the RNA-seq data you would like to download
+              eg. SRP079058",
               metavar = "character"),
   make_option(opt_str = c("-d", "--dir"), type = "character", default = getwd(),
               help = "directory where you would like the data downloaded to go",
@@ -19,28 +20,58 @@ option_list <- list(
               help="If you'd like to only use a portion of the samples,
               state the max number you'd like to download.")
 )
-opt <- parse_args(OptionParser(option_list=option_list))
+opt <- parse_args(OptionParser(option_list = option_list))
 dat.dir <- file.path(opt$dir)
 
 #------------------- Connect to NCBI's SRA SQL database------------------------#
-srafile <- "SRAmetadb.sqlite"
+srafile <- file.path("data", "SRAmetadb.sqlite")
 if (!file.exists(srafile)) {
     getSRAdbFile()
 }
-con <- dbConnect(RSQLite::SQLite(), srafile)
+con <- DBI::dbConnect(RSQLite::SQLite(), srafile)
 
 # Get a list of the samples associated with the project we are interested in
 files <- listSRAfile(opt$id, con)
+write.csv(files, file.path("data", "all.SRA.files.csv"))
 
 # If we want to restrict the number of samples being processed:
 if (!is.null(opt$number)){
   set.seed(12345)
-  files <- files$run[sample(nrow(files), opt$number)]
-} else {
-  files <- files$run
+  files <- files[sample(nrow(files), opt$number), ]
 }
 #-------------------------Get all the FASTQ files------------------------------#
 if (!dir.exists(dat.dir)){
   dir.create(dat.dir)
+} else {
+  if (is.null(opt$number)) {
+    # Get a list of previously downloaded forward sequence files
+    #existing.for.files <- grep("_1.fastq.gz", dir(dat.dir), value = TRUE) 
+    #existing.for.files <- gsub("_1.fastq.gz", "", existing.for.files)
+
+    # Get a list of previously downloaded reverse sequence files
+    #existing.rev.files <- grep("_2.fastq.gz", dir(dat.dir), value = TRUE) 
+    #existing.rev.files <- gsub("_1.fastq.gz", "", existing.for.files) 
+  
+    # Files that don't need to be downloaded
+    #existing.files <- existing.for.files[!is.na(match(existing.for.files,
+    #                                                existing.rev.files))]
+    existing.files <- dir("data/salmon_quants")
+    # Filter them out of the file list. 
+    existing.files <- match(files$run, existing.files)
+    files <- files[is.na(existing.files), ]
+  }
 }
-getFASTQfile(files, con, destDir = dat.dir)
+# Write the table of the ftp's
+#nchar(files$run)
+#fastq.urls <- paste0("ftp://ftp.sra.ebi.ac.uk/vol1/fastq/",
+ #                       substr(files$run, 0, 6), "/00", substr(files$run,
+  #                      nchar(files$run), nchar(files$run)), "/", files$run)
+#fastq.urls <- paste0(rep(fastq.urls, each = 2), c("_1.fastqc.gz", "_2.fastqc.gz"))
+
+write.table(files$run, file.path("files.2.download.txt"), col.names = FALSE,
+            row.names = FALSE, sep = "\n", quote = FALSE)
+
+# Can download them direct from here, but I wouldn't recommend doing this unless 
+# you have a small number of samples or a large amount of space on your computer
+# getFASTQfile( , con, destDir = dat.dir)
+
