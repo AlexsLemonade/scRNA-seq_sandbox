@@ -4,7 +4,6 @@
 # 
 # Magrittr pipe
 `%>%` <- dplyr::`%>%`
-setwd("../..")
 
 #--------------------------- Create ID conversion key--------------------------#
 if (!file.exists(file.path("data", "sample_id_key.RDS"))) {

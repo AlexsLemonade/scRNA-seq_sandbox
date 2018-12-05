@@ -16,6 +16,7 @@ salmon.data <- readRDS(file.path("data", "salmon.data.RDS"))
 
 # Mitochondrial genes by their ensembl IDs
 # This list is from http://jdblischak.github.io/singleCellSeq/analysis/qc-filter-ipsc.html
+
 mtgene <- c("ENSG00000198899", "ENSG00000198727", "ENSG00000198888", 
             "ENSG00000198886", "ENSG00000212907", "ENSG00000198786",
             "ENSG00000198695", "ENSG00000198712", "ENSG00000198804",

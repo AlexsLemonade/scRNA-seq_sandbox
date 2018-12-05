@@ -50,3 +50,7 @@ done
 
 # Obtain summary report of fastqc:
 Rscript 1-get_fastqc_reports.R -d data/fastqc_reports -o results
+
+# Make a gene matrix out of the Salmon quantification data
+Rscript 2-make_gene_matrix.R -d data/salmon_quants -o results
+

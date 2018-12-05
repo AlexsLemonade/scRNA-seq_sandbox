@@ -21,8 +21,6 @@ option_list <- list(
               state the max number you'd like to download.")
 )
 opt <- parse_args(OptionParser(option_list = option_list))
-opt$dir <- "data/raw_data"
-opt$id <- "SRP079058"
 dat.dir <- file.path(opt$dir)
 
 #------------------- Connect to NCBI's SRA SQL database------------------------#

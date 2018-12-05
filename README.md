@@ -43,8 +43,8 @@ Medulloblastoma - subclass of primitive neuroectodermal tumor
 
 *Preprocessing*: 
     sequence quality control: FASTQC
-    adapter trimming: TrimGalore!, Prinseq
-    genome alignment: STAR or HISAT2
+    adapter trimming: TrimGalore!
+    genome alignment: HISAT2
     quantification: Salmon
     normalization: SCnorm
     

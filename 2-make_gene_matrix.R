@@ -2,8 +2,7 @@
 # CCDL for ALSF 
 #
 # Purpose: Make gene matrix and do quality testing 
-
-# Install these libraries if they are not installed
+#-------------------------- Get necessary packages-----------------------------#
 if (!("org.Hs.eg.db" %in% installed.packages())) { 
   source("https://bioconductor.org/biocLite.R")
   biocLite("org.Hs.eg.db", suppressUpdates = TRUE)
@@ -13,18 +12,29 @@ if (!("rjson" %in% installed.packages())) {
 }
 
 # Attach needed libraries
-library(Rsubread)
 library(org.Hs.eg.db)
+library(optparse)
+
+# Magrittr pipe
+`%>%` <- dplyr::`%>%`
+
+#--------------------------------Set up options--------------------------------#
+option_list <- list( 
+  make_option(opt_str = c("-d", "--dir"), type = "character", default = getwd(),
+              help = "Directory where salmon quantification folders are located",
+              metavar = "character"),
+  make_option(opt_str = c("-o", "--output"), type = "character", default = getwd(),
+              help = "Directory where you would like the output to go",
+              metavar = "character"))
+
+opt <- parse_args(OptionParser(option_list = option_list))
 
 #------------------------------Import Salmon reads-----------------------------#
-# Check out the salmon files
-setwd(file.path("data", "salmon_quants"))
-
 # Get the names of all the folders
-salmon.folders <- dir() 
+salmon.folders <- dir(opt$dir) 
 
 # Read the data into a list
-salmon <- lapply(salmon.folders, function(x) read.table(file.path(x, "quant.sf"),
+salmon <- lapply(salmon.folders, function(x) read.table(file.path(opt$dir, x, "quant.sf"),
                                                       header = TRUE))
 
 # Get Salmon ensembl gene annotation IDs
@@ -45,7 +55,7 @@ salmon.data <- do.call("cbind", lapply(salmon, function(x) {
 
 # Carry over ID names
 dimnames(salmon.data)[[2]] <- salmon.folders
-
+e
 # Make into a make annotation into a dataframe (removes data without a gene)
 salmon.data <- data.frame('ensembl' = rownames(salmon.data),
                           'gene' = mapIds(org.Hs.eg.db, keys = rownames(salmon.data), 
@@ -54,15 +64,15 @@ salmon.data <- data.frame('ensembl' = rownames(salmon.data),
                            stringsAsFactors = FALSE)
 
 # Save to an RDS file
-saveRDS(salmon.data, file = file.path("salmon.data.RDS"))
+saveRDS(salmon.data, file = file.path(opt$output, "salmon.data.RDS"))
 
 #---------------------Salmon proportion of mapped reads------------------------#
 # Get the proportion of mapped reads
 salmon.prop.assigned <- vapply(salmon.folders, function(x) {
-  rjson::fromJSON(file = file.path(x, "aux_info", "meta_info.json"))$percent_mapped/100
+  rjson::fromJSON(file = file.path(opt$dir, x, "aux_info", "meta_info.json"))$percent_mapped/100
   }, FUN.VALUE = 1)
 
 # Make a histogram of this information
-png(file.path("..", "..", "results", "salmon_prop_reads_mapped_hist.ensembl.png"))
+png(file.path(opt$output, "salmon_prop_reads_mapped_hist.ensembl.png"))
 hist(salmon.prop.assigned, xlab = "", main = "Salmon Proportion of Mapped Reads", breaks = 20)
 dev.off()
