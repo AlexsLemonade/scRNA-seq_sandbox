@@ -77,6 +77,10 @@ hisat.data <- readRDS(file.path("data", "hisat.data.RDS"))
 colnames(salmon.data) <- dplyr::recode(colnames(salmon.data), !!!convert.key)
 colnames(hisat.data) <- dplyr::recode(colnames(hisat.data), !!!convert.key)
 
+# Save objects with the GEO accession IDs
+saveRDS(salmon.data, file.path("data", "salmon.data.RDS"))
+saveRDS(hisat.data, file.path("data", "hisat.data.RDS"))
+
 #------------------------------Compare datasets--------------------------------#
 #
 # This function will plot the distribution of the PC scores looks like and label samples by the different variables' different factor levels
