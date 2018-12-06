@@ -1,6 +1,8 @@
 #!/bin/bash
 # Note, change the directory to where you want these things to appear before running this code.
 
+#--------------Will run setup only if it hasn't been ran before----------------#
+if [ ! -e data/human_index ]; then
 # Make directories
 mkdir data
 mkdir data/raw_data
@@ -19,6 +21,7 @@ salmon --threads=16 --no-version-check index \
 -t data/Homo_sapiens.GRCh38.cdna.all.fa.gz \
 -i data/human_index \
 -k 23
+fi
 
 #--------------------------- Download fastq data-------------------------------#
 # Note: because running all ~3800 samples takes quite a bit of time, use -n option 
