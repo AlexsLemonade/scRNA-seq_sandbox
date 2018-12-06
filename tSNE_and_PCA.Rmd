@@ -5,7 +5,8 @@ date: "12/5/2018"
 output: html_document
 ---
 
-# Purpose: Run tSNE and PCA for data, look at where different sample types end up clustered
+## Purpose: Run tSNE and PCA for data, look at where different sample types 
+end up clustered.
 ```{r Setup, include=FALSE}
 # If this package isn't installed, install it
 if (!("tsne" %in% installed.packages())) {
@@ -13,6 +14,9 @@ if (!("tsne" %in% installed.packages())) {
 }
 ```
 
+### Set up the expression data. Here we will import our salmon data.
+We are going to drop the gene name columns because we won't need those for PCA
+and tSNE.
 ```{r Set up the expression data}
 # Import gene expression matrix data
 salmon.data <- readRDS(file.path("data", "salmon.data.RDS"))
@@ -21,13 +25,24 @@ salmon.data <- readRDS(file.path("data", "salmon.data.RDS"))
 salmon.data <- salmon.data[ ,-c(1,2)]
 ```
 
+### Set up the metadata
 ```{r Set up the metadata}
-# Get sample info for batch effect testing
-geo.meta <- read.csv(file.path("data", "meta_data.csv"))
+if (file.exists(file.path("data", "meta_data.csv"))) {
+# Read in csv if it's been made, if not read in from GEOquery
+  geo.meta <- read.csv(file.path("data", "meta_data.csv"), stringsAsFactors = FALSE)
+} else {
+  geo.meta <- GEOquery::getGEO("GSE84465", destdir = "data")
+  geo.meta <- data.frame(geo.meta[[1]]@phenoData@data)
+}
+```
 
-# Make sure samples and metadata are in the same order 
+Make sure samples and metadata are in the same order 
+```{r Order samples}
 geo.meta <- geo.meta[match(colnames(salmon.data),geo.meta$geo_accession),]
+```
 
+### Make a list of metadata variables we would like to examine
+```{r Select suitable metadata variables}
 # Determine what meta variables might be suitable to test on based on how many
 # levels they have
 geo.meta.levels <- apply(geo.meta, 2, function(x) length(levels(as.factor(x))))
@@ -36,7 +51,8 @@ geo.meta.levels <- apply(geo.meta, 2, function(x) length(levels(as.factor(x))))
 geo.meta <- as.list(geo.meta[,-which(geo.meta.levels==nrow(geo.meta)|geo.meta.levels==1)])
 ```
 
-```{r}
+### Do the actual PCA and tSNE (this step might take a little bit of time.)
+```{r PCA and tSNE}
 # Do PCA of samples
 pca <- prcomp(t(salmon.data))
 
@@ -44,6 +60,8 @@ pca <- prcomp(t(salmon.data))
 tsne.dat <- tsne::tsne(t(salmon.data))
 ```
 
+### Do linear regression of PC scores using metadata variables as the predictor
+variables. 
 ```{r}
 # Do linear regression of PC scores with the various variables we have
 results <- lapply(geo.meta, function(y) {
@@ -58,7 +76,7 @@ results <- unlist(results)[-grep("characteristics", names(geo.meta))]
 names(results) <- gsub("\\.ch1$", "", names(results))
 ```
 
-Make a barplot of the regression results -log10(pvals)
+### Make a barplot of the regression results -log10(pvals)
 ```{r}
 # Rearrange the order in a more sensible way
 results <- results[c(5, 9, 2:4, 7:8)]
@@ -77,8 +95,10 @@ Make plotting function to help us examine our PCA and tSNE results
 # Make PCA/tSNE plot function that allows us to run a bunch of variables through
 # at once
 pc.plot <- function(dat, var, label = "label"){
+  # Get a list of colors for the different levels of variables
   colz <- colors(distinct = TRUE)[runif(length(levels(var)), min = 1,
                                         max = length(colors(distinct=TRUE)))]
+  # Save plot to png
   png(file.path( "results", paste0(label, ".png")))
   plot(dat, pch = 21, bg = colz[var]);
   legend(x = "topleft", legend = levels(var), fill = colz, cex = 0.8)
@@ -86,12 +106,22 @@ pc.plot <- function(dat, var, label = "label"){
 }
 ```
 
-Use the function on all the variables in our list
+### Use the function on all the variables in our list
 ```{r}
 # Run through all the variables at once. 
 lapply(geo.meta, function(variable) {
+  
+  # Get the variable name
   name <- names(geo.meta)[parent.frame()$i[]]
+  
+  # Make PCA plot
   pc.plot(pca$x, variable, label = name)
+  
+  # Make tSNE plot
   pc.plot(tsne.dat, variable, label = name)
 })
+```
+
+```{r}
+sessionInfo()
 ```

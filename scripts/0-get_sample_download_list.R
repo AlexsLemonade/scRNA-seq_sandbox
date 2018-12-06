@@ -21,13 +21,22 @@ option_list <- list(
               help="Use this option if you don't want to re-process already existing files"),
   make_option(c("-n", "--number"), type = "numeric", default = TRUE,
               help="If you'd like to only use a portion of the samples,
-              state the max number you'd like to download.")
+              state the max number you'd like to download."),
+  make_option(opt_str = c("-q", "--sql"), type = "character", default = NULL,
+              help = "directory path to sql", metavar = "character"))
 )
 opt <- parse_args(OptionParser(option_list = option_list))
 dat.dir <- file.path(opt$dir)
 
+if (!is.null(opt$sql) && !dir.exists(opt$sql)) {
+  dir.exists(opt$sql)
+  stop("The path to the GEO sql file does not exist. Double check that the file
+       is at the path you specified relative to the current directory.")
+}
+
 #------------------- Connect to NCBI's SRA SQL database------------------------#
-srafile <- file.path("data", "SRAmetadb.sqlite")
+# Get sra path
+srafile <- file.path(opt$sql)
 if (!file.exists(srafile)) {
     getSRAdbFile()
 }

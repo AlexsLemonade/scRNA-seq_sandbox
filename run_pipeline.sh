@@ -23,16 +23,20 @@ salmon --threads=16 --no-version-check index \
 #--------------------------- Download fastq data-------------------------------#
 # Note: because running all ~3800 samples takes quite a bit of time, use -n option 
 # to set what number of randomly selected samples you would like  
-Rscript 0-download_fastq_data.R \
+Rscript scripts/0-get_sample_download_list.R \
 -i SRP079058 \
--d data/raw_data 
+-d data/raw_data \
+-q data/SRAmetadb.sqlite \
+-r
 
+# Change directory to the data
 cd data
 
-for line in `cat ../files.2.download.txt`
+# Download each sample and run Salmon on it. Then remove the sample to save room. 
+for line in `cat ../files.to.download.txt`
 do
   # Download forward and reverse fastq files
-  Rscript ../download_sra.R -s $line -q SRAmetadb.sqlite -d raw_data
+  Rscript ../scripts/1-download_sra.R -s $line -q SRAmetadb.sqlite -d raw_data
   # Run sequence quality control with FASTQC
   /FastQC/fastqc raw_data/* --outdir fastqc_reports
   # For each fastq file pair, do QC and then salmon
@@ -50,8 +54,7 @@ do
 done
 
 # Obtain summary report of fastqc:
-Rscript 1-get_fastqc_reports.R -d data/fastqc_reports -o results
+Rscript scripts/2-get_fastqc_reports.R -d data/fastqc_reports -o results
 
 # Make a gene matrix out of the Salmon quantification data
-Rscript 2-make_gene_matrix.R -d data/salmon_quants -o results
-
+Rscript scripts/3-make_gene_matrix.R -d data/salmon_quants -o results

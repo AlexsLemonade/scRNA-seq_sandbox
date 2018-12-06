@@ -1,0 +1,29 @@
+# A script to download a single file from command line
+library(optparse)
+library(SRAdb)
+
+# Get options from command line
+option_list <- list( 
+  make_option(opt_str = c("-s", "--sample"), type = "character", default = NULL,
+              help = "SRR Run Sample ID of the RNA-seq data you would like to download
+              For multiple samples, separate ids by a comma and no spaces 
+              eg. SRR3934349,SRR3934348", metavar = "character"),
+  make_option(opt_str = c("-d", "--dir"), type = "character", default = getwd(),
+              help = "directory where you would like the data downloaded to go",
+              metavar = "character"),
+  make_option(opt_str = c("-q", "--sql"), type = "character", default = NULL,
+              help = "directory path to sql", metavar = "character"))
+# Parse options
+opt <- parse_args(OptionParser(option_list = option_list))
+
+# Separate sample ids
+samples <- strsplit(opt$sample, ",")
+
+# Get sra path
+srafile <- file.path(opt$sql)
+
+# Connect to SQL database
+con <- dbConnect(RSQLite::SQLite(), srafile)
+
+# Download each sample
+lapply(samples, function(x) getFASTQfile(x, con, destDir = opt$dir))
