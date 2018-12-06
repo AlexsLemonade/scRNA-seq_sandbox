@@ -71,9 +71,11 @@ results <- lapply(geo.meta, function(y) {
 # Get rid of the characteristics variables, they appear to be duplicates in our 
 # case
 results <- unlist(results)[-grep("characteristics", names(geo.meta))]
+geo.meta <- geo.meta[-grep("characteristics", names(geo.meta))]
 
 # Get rid of the ch1 tag
 names(results) <- gsub("\\.ch1$", "", names(results))
+names(geo.meta) <- names(results)
 ```
 
 ### Make a barplot of the regression results -log10(pvals)
@@ -95,6 +97,9 @@ Make plotting function to help us examine our PCA and tSNE results
 # Make PCA/tSNE plot function that allows us to run a bunch of variables through
 # at once
 pc.plot <- function(dat, var, label = "label"){
+  # Coerce it to a factor in case it's not. 
+  var <- as.factor(var)
+  
   # Get a list of colors for the different levels of variables
   colz <- colors(distinct = TRUE)[runif(length(levels(var)), min = 1,
                                         max = length(colors(distinct=TRUE)))]
@@ -110,15 +115,14 @@ pc.plot <- function(dat, var, label = "label"){
 ```{r}
 # Run through all the variables at once. 
 lapply(geo.meta, function(variable) {
-  
   # Get the variable name
   name <- names(geo.meta)[parent.frame()$i[]]
   
   # Make PCA plot
-  pc.plot(pca$x, variable, label = name)
+  pc.plot(pca$x, var = variable, label = paste0(name, "_pca"))
   
   # Make tSNE plot
-  pc.plot(tsne.dat, variable, label = name)
+  pc.plot(tsne.dat, var = variable, label = paste0(name, "_tsne"))
 })
 ```
 
