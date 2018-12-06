@@ -25,6 +25,6 @@ $ bash run_pipeline.sh
 Go to your internet browser and enter: `localhost:8787`
 In rstudio, open up one of these and follow along: 
 
-- *seurat_data_processing.Rmd* - basic Rmd taking you through the beginning steps of seurat pipeline QC
+- *seurat_data_processing.Rmd* - takes you through the beginning steps of [Seurat](https://satijalab.org/seurat/get_started.html) pipeline QC.
 - *tSNE_and_PCA.Rmd* - Runs tSNE and PCA and labels it with metadata to do initial clustering analysis
 - *asap_data_prep.Rmd* - Makes data into a format that ASAP will take. [ASAP](https://ASAP.epfl.ch) has a gui with a pipeline with a lot of different options. 
