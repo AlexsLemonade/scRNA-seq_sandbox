@@ -4,6 +4,7 @@
 # Get raw reads for the given SRP Id
 # Magrittr pipe
 `%>%` <- dplyr::`%>%`
+
 #-------------------------- Get necessary packages-----------------------------#
 library(SRAdb)
 library(optparse)
@@ -16,7 +17,9 @@ option_list <- list(
   make_option(opt_str = c("-d", "--dir"), type = "character", default = getwd(),
               help = "directory where you would like the data downloaded to go",
               metavar = "character"),
-  make_option(c("-n", "--number"), type = "numeric", default = NULL,
+  make_option(c("-r", "--refresh"), action ="store_true", default = FALSE,
+              help="Use this option if you don't want to re-process already existing files"),
+  make_option(c("-n", "--number"), type = "numeric", default = TRUE,
               help="If you'd like to only use a portion of the samples,
               state the max number you'd like to download.")
 )
@@ -43,31 +46,16 @@ if (!is.null(opt$number)){
 if (!dir.exists(dat.dir)){
   dir.create(dat.dir)
 } else {
-  if (is.null(opt$number)) {
-    # Get a list of previously downloaded forward sequence files
-    #existing.for.files <- grep("_1.fastq.gz", dir(dat.dir), value = TRUE) 
-    #existing.for.files <- gsub("_1.fastq.gz", "", existing.for.files)
-
-    # Get a list of previously downloaded reverse sequence files
-    #existing.rev.files <- grep("_2.fastq.gz", dir(dat.dir), value = TRUE) 
-    #existing.rev.files <- gsub("_1.fastq.gz", "", existing.for.files) 
-  
-    # Files that don't need to be downloaded
-    #existing.files <- existing.for.files[!is.na(match(existing.for.files,
-    #                                                existing.rev.files))]
+  if (opt$refresh) {
+    # Determine which files have already been downloaded and remove them from the list
     existing.files <- dir("data/salmon_quants")
+    
     # Filter them out of the file list. 
     existing.files <- match(files$run, existing.files)
     files <- files[is.na(existing.files), ]
   }
 }
-# Write the table of the ftp's
-#nchar(files$run)
-#fastq.urls <- paste0("ftp://ftp.sra.ebi.ac.uk/vol1/fastq/",
- #                       substr(files$run, 0, 6), "/00", substr(files$run,
-  #                      nchar(files$run), nchar(files$run)), "/", files$run)
-#fastq.urls <- paste0(rep(fastq.urls, each = 2), c("_1.fastqc.gz", "_2.fastqc.gz"))
-
+# Write the table of the urls
 write.table(files$run, file.path("files.2.download.txt"), col.names = FALSE,
             row.names = FALSE, sep = "\n", quote = FALSE)
 
