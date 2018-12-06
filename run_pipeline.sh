@@ -25,7 +25,7 @@ salmon --threads=16 --no-version-check index \
 # to set what number of randomly selected samples you would like  
 Rscript scripts/0-get_sample_download_list.R \
 -i SRP079058 \
--d data/raw_data \
+-d data/salmon_quants \
 -q data/SRAmetadb.sqlite \
 -r
 
