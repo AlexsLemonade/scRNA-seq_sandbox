@@ -1,0 +1,69 @@
+---
+title: "ASAP_data_prep"
+author: "C. Savonen, CCDL for ALSF"
+date: "12/6/2018"
+output: html_document
+---
+
+## Purpose: Prep data for use in [ASAP online](https://asap.epfl.ch/)
+```{r Import data}
+# Import gene expression matrix data
+salmon.data <- readRDS(file.path("data", "salmon.data.RDS"))
+```
+
+### Import metadata
+```{r Set up metadata}
+if (file.exists(file.path("data", "meta_data.csv"))) {
+# Read in csv if it's been made, if not read in from GEOquery
+  geo.meta <- read.csv(file.path("data", "meta_data.csv"), stringsAsFactors = FALSE)
+} else {
+  geo.meta <- GEOquery::getGEO("GSE84465", destdir = "data")
+  geo.meta <- data.frame(geo.meta[[1]]@phenoData@data)
+}
+```
+
+### Make batch file for ASAP to correct batches by.
+In this case we will use the plate ids. 
+ASAP wants the first column to be the sample IDs that match your sample data file
+and the second column to be the corresponding batch the sample belongs to.
+```{r Make batch info}
+batch.info <- cbind(geo.meta$geo_accession, geo.meta$plate.id.ch1)
+head(batch.info)
+```
+
+### Make sure the samples and the metadata are in the same order.
+```{r Order samples}
+# Put samples in same order 
+geo.meta <- geo.meta[match(colnames(salmon.data)[-c(1:2)], geo.meta$geo_accession), ]
+```
+
+### ASAP doesn't want extra gene columns and only likes round numbers for the counts
+Here we have salmon.data have it's genes as it's rownames, so even though we are 
+deleting these columns, the information we need is still there.
+```{r Round numbers}
+# Format the data so ASAP will like it. 
+salmon.data <- apply(salmon.data[,-c(1:2)], 2, round)
+head(salmon.data[,1:10])
+```
+
+### Write data file in the format ASAP will take.
+ASAP wants a typical gene by column gene expression matrix with samples with 
+the column names and the first column being the gene names.
+You can use other forms of separation other than "/t" but will need to specify
+what you have used in a drop down menu on ASAP. 
+```{r Write data file}
+# Write these data to tab delimited text files for use in ASAP
+write.table(salmon.data, file.path("data", "salmon.data.asap.txt"), sep = "\t",
+            row.names = FALSE, quote = FALSE)
+```
+
+### Write batch file in same type of format
+```{r Write batch file}
+# Write batch info file for ASAP use
+write.table(batch.info, file.path("data", "batch.info.txt"), row.names = FALSE, 
+            col.names = FALSE, sep = "\t", quote = FALSE)
+```
+
+```{r}
+sessionInfo()
+```
