@@ -1,72 +1,64 @@
 #!/bin/bash
 # Note, change the directory to where you want these things to appear before running this code.
-
 # Make directories
-mkdir data
-mkdir data/raw_data
-mkdir data/aligned_reads
-mkdir data/fastqc_reports
-mkdir data/fastqc_trimmed
+mkdir darmanis_data
+mkdir darmanis_data/raw_data
+mkdir darmanis_data/aligned_reads
+mkdir darmanis_data/fastqc_reports
+mkdir darmanis_data/salmon_quants
 mkdir results
-mkdir results/map_qc
+mkdir ref_files
+
+#--------------Will run setup only if it hasn't been ran before----------------#
+# Will check for genome index first before running
+if [ ! -e ref_files/human_index ]; then
+
+# Get the human transcriptome
+curl ftp://ftp.ensembl.org/pub/release-94/fasta/homo_sapiens/cdna/Homo_sapiens.GRCh38.cdna.all.fa.gz \
+-o ref_files/Homo_sapiens.GRCh38.cdna.all.fa.gz
+
+# Index the human transcriptome
+salmon --threads=16 --no-version-check index \
+-t ref_files/Homo_sapiens.GRCh38.cdna.all.fa.gz \
+-i ref_files/human_index \
+-k 23
+fi
 
 #--------------------------- Download fastq data-------------------------------#
-# Note: because running all ~3800 samples takes quite a bit of time, this 
-# example run is set to only run 10 samples. When you want to run the full set, 
-# delete the -n argument.  
-Rscript 0-download_fastq_data.R \
+# Note: because running all ~3800 samples takes quite a bit of time, use -n option 
+# to set what number of randomly selected samples you would like  
+Rscript scripts/0-get_sample_download_list.R \
 -i SRP079058 \
--d data/raw_data \
--n 20 
+-d darmanis_data/salmon_quants \
+-q ref_files/SRAmetadb.sqlite \
+-r
 
-#------------------------Run fastqc and get reports----------------------------#
-# Run sequence quality control with FASTQC
-/FastQC/fastqc data/raw_data/* --outdir data/fastqc_reports
+# Change directory to the data
+cd darmanis_data
 
-# Obtain summary report:
-Rscript 1-get_fastqc_reports.R -d data/fastqc_reports -o results
-
-#--------------Paired trimming of the adapters from these data:----------------#
-# Go to the raw_data directory 
-cd data/raw_data
-
-# Do adapter trimming for all sample file pairs
-for f in `ls *_1.fastq.gz | sed 's/_1.fastq.gz//'`
+# Download each sample and run Salmon on it. Then remove the sample to save room. 
+for line in `cat ../files.to.download.txt`
 do
-/TrimGalore-0.4.5/trim_galore \
---nextera \
---paired ${f}_1.fastq.gz ${f}_2.fastq.gz \
--o ../fastqc_trimmed
+  # Download forward and reverse fastq files
+  Rscript ../scripts/1-download_sra.R -s $line -q ../ref_files/SRAmetadb.sqlite -d raw_data
+  # Run sequence quality control with FASTQC
+  /FastQC/fastqc raw_data/* --outdir fastqc_reports
+  # For each fastq file pair, do QC and then salmon
+  for f in `ls raw_data/*_1.fastq.gz | sed 's/_1.fastq.gz//' `
+  do
+    "Processing sample ${f}"
+    # Run Salmon
+    salmon quant -i ../ref_files/human_index -l A \
+    -1 ${f}_1.fastq.gz \
+    -2 ${f}_2.fastq.gz \
+    -p 8 -o salmon_quants/$line \
+    --gcBias --seqBias --biasSpeedSamp 5
+  done
+  rm raw_data/*
 done
 
-#--------------- Align trimmed reads to genome using HISAT2--------------------#
-# Get premade human genome index:
-wget ftp://ftp.ccb.jhu.edu/pub/infphilo/hisat2/data/grch38.tar.gz -P ../
-tar data/grch38.tar.gz
+# Obtain summary report of fastqc:
+Rscript scripts/2-get_fastqc_reports.R -d darmanis_data/fastqc_reports -o results
 
-# Go to trimmed reads directory
-cd ../fastqc_trimmed
-
-# Do genome alignment for all sample pairs
-for f in `ls -1 *_1_val_1.fq.gz | sed 's/_1_val_1.fq.gz//' `
-do
-/hisat2-2.1.0/hisat2 -x ../grch38/genome \
--1 ${f}_1_val_1.fq.gz \
--2 ${f}_2_val_2.fq.gz \
--S ../aligned_reads/${f}.bam
-done
-
-#--------------------Further prep the bam files with samtools------------------#
-# Change to directory where bam files are
-cd ../aligned_reads
-# Sort and index bam files
-for f in `ls *.bam | sed 's/.bam//' `
-do
-/samtools-1.3.1/samtools sort ${f}.bam -o ${f}.sorted.bam
-/samtools-1.3.1/samtools index ${f}.bam
-done
-
-
-# Index bam files
-parallel /samtools-1.3.1/samtools sort ::: aligned_reads/*.bam -o aligned_reads/*.sorted.bam
-parallel /samtools-1.3.1/samtools index ::: aligned_reads/*.bam
+# Make a gene matrix out of the Salmon quantification data
+Rscript scripts/3-make_gene_matrix.R -d darmanis_data/salmon_quants -o results
