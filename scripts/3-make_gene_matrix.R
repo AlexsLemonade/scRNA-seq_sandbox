@@ -78,7 +78,7 @@ hist(salmon.prop.assigned, xlab = "", main = "Salmon Proportion of Mapped Reads"
 dev.off()
 
 #--------------------------- Create ID conversion key--------------------------#
-if (!file.exists(file.path("data", "sample_id_key.RDS"))) {
+if (!file.exists(file.path("sample_id_key.RDS"))) {
     # Get geo metadata
     geo.meta <- GEOquery::getGEO("GSE84465", destdir = "data")
     
@@ -88,21 +88,21 @@ if (!file.exists(file.path("data", "sample_id_key.RDS"))) {
     srx.ids = stringr::word(geo.meta[[1]]@phenoData@data$relation.1,
     start = 2, sep = "term="))
     # Import SRA file names
-    sra.files <- read.csv(file.path("data", "SRA.files.csv"))[, -1]
+    sra.files <- read.csv(file.path("SRA.files.csv"))[, -1]
     
     # Merge both keys into a single id.key dataframe
     id.key <- merge(id.key, sra.files, by.x = "srx.ids", by.y = "experiment")
     
     # Save this dataframe for later
-    saveRDS(id.key, file = file.path("data", "sample_id_key.RDS"))
+    saveRDS(id.key, file = file.path("sample_id_key.RDS"))
     
     # Save the rest of the metadata as a csv
     geo.meta <- data.frame(geo.meta[[1]]@phenoData@data)
-    write.csv(geo.meta, file = file.path("data", "meta_data.csv"))
+    write.csv(geo.meta, file = file.path("meta_data.csv"))
     
     rm(geo.meta)
 } else {
-    id.key <- readRDS(file.path("data", "sample_id_key.RDS"))
+    id.key <- readRDS(file.path("sample_id_key.RDS"))
 }
 
 #----------------------Change sample column names to GSM-----------------------#
@@ -111,10 +111,10 @@ convert.key <- as.list(as.character(id.key$gsm.ids))
 names(convert.key) <- as.character(id.key$run)
 
 # Import datasets from their RDS files
-salmon.data <- readRDS(file.path("data", "salmon.data.RDS"))
+salmon.data <- readRDS(file.path("salmon.data.RDS"))
 
 # Obtain GSM ids using conversion key and make these the column names
 colnames(salmon.data) <- dplyr::recode(colnames(salmon.data), !!!convert.key)
 
 # Save objects with the GEO accession IDs
-saveRDS(salmon.data, file.path("data", "salmon.data.RDS"))
+saveRDS(salmon.data, file.path("salmon.data.RDS"))

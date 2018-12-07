@@ -45,7 +45,7 @@ con <- DBI::dbConnect(RSQLite::SQLite(), opt$sql)
 
 # Get a list of the samples associated with the project we are interested in
 files <- listSRAfile(opt$id, con)
-write.csv(files, file.path("data", "SRA.files.csv"))
+write.csv(files, file.path("SRA.files.csv"))
 
 # If we want to restrict the number of samples being processed:
 if (!is.null(opt$number)){

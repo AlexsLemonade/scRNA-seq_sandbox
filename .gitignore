@@ -5,6 +5,8 @@
 
 
 # Ignore data, there’s too much of it
-data
+anoop_data
+darmanis_data
 docker
 results
+ref_files
