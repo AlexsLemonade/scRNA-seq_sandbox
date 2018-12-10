@@ -1,6 +1,10 @@
 #!/bin/bash
+# C. Savonen
+# CCDL for ALSF 2018
 
-# Make directories
+# Purpose: running the pre-processing steps for single cell data. 
+
+#----------------------------Make directories---------------------------------#
 mkdir darmanis_data
 mkdir darmanis_data/raw_data
 mkdir darmanis_data/aligned_reads
@@ -51,25 +55,24 @@ do
   # For each fastq file pair, do QC and then salmon
   for f in `ls raw_data/*_1.fastq.gz | sed 's/_1.fastq.gz//' `
   do
-    "Processing sample ${f}"
+    echo "Processing sample ${f}"
     
     # Run Salmon
     salmon quant -i ../ref_files/human_index -l A \
     -1 ${f}_1.fastq.gz \
     -2 ${f}_2.fastq.gz \
     -p 8 -o salmon_quants/$line \
-    --gcBias --seqBias --biasSpeedSamp 5
-    
+    --gcBias --seqBias --biasSpeedSamp 5  
   done
   rm raw_data/*
 done
 
-# Obtain summary report of fastqc:
+#-------------------------Obtain summary report of fastqc:---------------------#
 Rscript scripts/2-get_fastqc_reports.R \
 -d darmanis_data/fastqc_reports \
 -o results
 
-# Make a gene matrix out of the Salmon quantification data
+#-------------Make a gene matrix out of the Salmon quantification data---------#
 Rscript scripts/3-make_gene_matrix.R \
 -d darmanis_data/salmon_quants \
 -g GSE84465 \
