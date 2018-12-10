@@ -13,6 +13,7 @@
 # -q ref_files/SRAmetadb.sqlite 
 # -d raw_data
 
+# Using SRAdb to download the file and optparse to determine options from bash use
 library(optparse)
 library(SRAdb)
 
