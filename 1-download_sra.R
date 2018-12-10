@@ -1,4 +1,18 @@
-# A script to download a single file from command line
+# CCDL ALSF 2018
+# C. Savonen 
+
+# This script is used in a bash loop to download a single file from command line.
+# Options: 
+#  "-s" Run sample ID of rht RNA-seq data you would like to download. 
+#  "-d" Path to directory where you would like the data downloaded to go
+#  "-q" Path to downloaded metadata SQL file from GEO. Usually file is "SRAmetadb.sqlite"
+
+# Example usage in bash:   
+# Rscript scripts/1-download_sra.R 
+# -s SRR3934349 
+# -q ref_files/SRAmetadb.sqlite 
+# -d raw_data
+
 library(optparse)
 library(SRAdb)
 
@@ -12,7 +26,7 @@ option_list <- list(
               help = "directory where you would like the data downloaded to go",
               metavar = "character"),
   make_option(opt_str = c("-q", "--sql"), type = "character", default = NULL,
-              help = "directory path to sql", metavar = "character"))
+              help = "Directory path to sql file from GEO", metavar = "character"))
 # Parse options
 opt <- parse_args(OptionParser(option_list = option_list))
 
