@@ -20,6 +20,13 @@
 # "-q" - put the path to the GEO metadata sql, if the file already exists. 
 #        The sql file will be downloaded if this option isn't given. 
 
+# Example usage in bash: 
+# Rscript scripts/0-get_sample_download_list.R \
+# -i SRP079058 \
+# -d darmanis_data/salmon_quants \
+# -q ref_files/SRAmetadb.sqlite \
+# -r
+
 # Magrittr pipe
 `%>%` <- dplyr::`%>%`
 
