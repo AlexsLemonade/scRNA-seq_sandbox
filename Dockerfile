@@ -26,6 +26,7 @@ RUN apt-get update -qq && apt-get -y --no-install-recommends install \
     optparse \
     fastqcr \
     rbamtools \
+    rjson \
   && R -e "BiocInstaller::biocLite(c('SRAdb', 'DBI'), suppressUpdates = TRUE)" 
 
 # Install Rsubread by itself
