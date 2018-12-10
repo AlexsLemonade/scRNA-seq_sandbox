@@ -6,10 +6,16 @@
 # to obtain gene symbols. Then convert SRR IDs to GSM IDs. Then save this matrix
 # to an RDS file. 
 
-# options: 
+# Options: 
 # "-d" - Directory of where individual samples' salmon folders are located. 
 # "-o" - Directory of where the output gene matrix RDS file should go. 
 # "-g" - GEO ID for the dataset so the metadata can be downloaded. 
+
+# Command line example:
+# Rscript scripts/3-make_gene_matrix.R \
+# -d data/salmon_quants \
+# -g GSE86445 \
+# -o data
 
 #-------------------------- Get necessary packages-----------------------------#
 # Later can add an option for other species, but for now this is just for human.
