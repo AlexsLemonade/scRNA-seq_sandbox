@@ -10,12 +10,15 @@
 # "-d" - Directory of where individual samples' salmon folders are located.
 # "-o" - Directory of where the output gene matrix RDS file should go.
 # "-g" - GEO ID for the dataset so the metadata can be downloaded.
-
+# "-m" - Percent mapped reads (reported as a decimal) cutoff for filtering 
+#        samples. Default is 0.5. 
+# 
 # Command line example:
 
 # Rscript scripts/3-make_gene_matrix.R \
 # -d data/salmon_quants \
 # -g GSE86445 \
+# -m 0.5 \
 # -o data
 
 #-------------------------- Get necessary packages-----------------------------#
@@ -44,7 +47,11 @@ option_list <- list(
         metavar = "character"),
     make_option(opt_str = c("-o", "--output"), type = "character",
         default = getwd(), help = "Directory where you would like the output to go",
-        metavar = "character"))
+        metavar = "character"),
+    make_option(opt_str = c("-m", "--mapped"), type = "numeric", 
+        default = "0.5", help = "Cutoff for what percent mapped_reads samples
+        should have. Any samples with less than the cutoff will be removed.",
+        metavar = "numeric"))
 
 opt <- parse_args(OptionParser(option_list = option_list))
 
@@ -53,8 +60,9 @@ opt <- parse_args(OptionParser(option_list = option_list))
 salmon.folders <- dir(opt$dir) 
 
 # Read the data into a list
-salmon <- lapply(salmon.folders, function(x) read.table(file.path(opt$dir, x, "quant.sf"),
-                                                      header = TRUE))
+salmon <- lapply(salmon.folders, function(x) {
+                read.table(file.path(opt$dir, x, "quant.sf"), header = TRUE)
+                })
 
 # Get Salmon ensembl gene annotation IDs
 salmon.annot <- strsplit(as.character(salmon[[1]]$Name), "\\|")
@@ -74,16 +82,13 @@ salmon.data <- do.call("cbind", lapply(salmon, function(x) {
 
 # Carry over ID names
 dimnames(salmon.data)[[2]] <- salmon.folders
-e
+
 # Make into a make annotation into a dataframe (removes data without a gene)
 salmon.data <- data.frame('ensembl' = rownames(salmon.data),
                           'gene' = mapIds(org.Hs.eg.db, keys = rownames(salmon.data), 
                                           column = "SYMBOL", keytype = "ENSEMBL"),
                            salmon.data,
                            stringsAsFactors = FALSE)
-
-# Save to an RDS file
-saveRDS(salmon.data, file = file.path(opt$output, "salmon.data.RDS"))
 
 #---------------------Salmon proportion of mapped reads------------------------#
 # Get the proportion of mapped reads
@@ -98,10 +103,13 @@ hist(salmon.prop.assigned, xlab = "", main = "Salmon Proportion of Mapped Reads"
 breaks = 20)
 dev.off()
 
+# Filter out samples with too low of mapped reads 
+salmon.data <- salmon.data[, which(salmon.prop.assigned > opt$mapped)]
+
 #--------------------------- Create ID conversion key--------------------------#
-if (!file.exists(file.path("sample_id_key.RDS"))) {
+if (!file.exists(file.path(opt$output, "sample_id_key.RDS"))) {
     # Get geo metadata
-    geo.meta <- GEOquery::getGEO(opt$geo, destdir = "data")
+    geo.meta <- GEOquery::getGEO(opt$geo, destdir = file.path(opt$output))
     
     # Get the GSM and SRX ids from the GEO metadata
     id.key <- data.frame(gsm.ids = geo.meta[[1]]@phenoData@data$geo_accession,
@@ -110,21 +118,21 @@ if (!file.exists(file.path("sample_id_key.RDS"))) {
     start = 2, sep = "term="))
     
     # Import SRA file names
-    sra.files <- read.csv(file.path("SRA.files.csv"))[, -1]
+    sra.files <- read.csv(file.path(opt$output, "SRA.files.csv"))[, -1]
     
     # Merge both keys into a single id.key dataframe
     id.key <- merge(id.key, sra.files, by.x = "srx.ids", by.y = "experiment")
     
     # Save this dataframe for later
-    saveRDS(id.key, file = file.path("sample_id_key.RDS"))
+    saveRDS(id.key, file = file.path(opt$output, "sample_id_key.RDS"))
     
     # Save the rest of the metadata as a csv
     geo.meta <- data.frame(geo.meta[[1]]@phenoData@data)
-    write.csv(geo.meta, file = file.path("meta_data.csv"))
+    write.csv(geo.meta, file = file.path(opt$output, "meta_data.csv"))
     
     rm(geo.meta)
 } else {
-    id.key <- readRDS(file.path("sample_id_key.RDS"))
+    id.key <- readRDS(file.path(opt$output, "sample_id_key.RDS"))
 }
 
 #----------------------Change sample column names to GSM-----------------------#
@@ -132,11 +140,8 @@ if (!file.exists(file.path("sample_id_key.RDS"))) {
 convert.key <- as.list(as.character(id.key$gsm.ids))
 names(convert.key) <- as.character(id.key$run)
 
-# Import datasets from their RDS files
-salmon.data <- readRDS(file.path("salmon.data.RDS"))
-
 # Obtain GSM ids using conversion key and make these the column names
 colnames(salmon.data) <- dplyr::recode(colnames(salmon.data), !!!convert.key)
 
-# Save objects with the GEO accession IDs
-saveRDS(salmon.data, file.path("salmon.data.RDS"))
+# Save to an RDS file
+saveRDS(salmon.data, file = file.path(opt$output, "salmon.data.RDS"))
