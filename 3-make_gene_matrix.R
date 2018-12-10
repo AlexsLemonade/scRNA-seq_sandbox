@@ -10,12 +10,15 @@
 # "-d" - Directory of where individual samples' salmon folders are located.
 # "-o" - Directory of where the output gene matrix RDS file should go.
 # "-g" - GEO ID for the dataset so the metadata can be downloaded.
-
+# "-m" - Percent mapped reads (reported as a decimal) cutoff for filtering 
+#        samples. Default is 0.5. 
+# 
 # Command line example:
 
 # Rscript scripts/3-make_gene_matrix.R \
 # -d data/salmon_quants \
 # -g GSE86445 \
+# -m 0.5 \
 # -o data
 
 #-------------------------- Get necessary packages-----------------------------#
@@ -104,9 +107,9 @@ dev.off()
 salmon.data <- salmon.data[, which(salmon.prop.assigned > opt$mapped)]
 
 #--------------------------- Create ID conversion key--------------------------#
-if (!file.exists(file.path("sample_id_key.RDS"))) {
+if (!file.exists(file.path(opt$output, "sample_id_key.RDS"))) {
     # Get geo metadata
-    geo.meta <- GEOquery::getGEO(opt$geo, destdir = "data")
+    geo.meta <- GEOquery::getGEO(opt$geo, destdir = file.path(opt$output))
     
     # Get the GSM and SRX ids from the GEO metadata
     id.key <- data.frame(gsm.ids = geo.meta[[1]]@phenoData@data$geo_accession,
@@ -115,21 +118,21 @@ if (!file.exists(file.path("sample_id_key.RDS"))) {
     start = 2, sep = "term="))
     
     # Import SRA file names
-    sra.files <- read.csv(file.path("SRA.files.csv"))[, -1]
+    sra.files <- read.csv(file.path(opt$output, "SRA.files.csv"))[, -1]
     
     # Merge both keys into a single id.key dataframe
     id.key <- merge(id.key, sra.files, by.x = "srx.ids", by.y = "experiment")
     
     # Save this dataframe for later
-    saveRDS(id.key, file = file.path("sample_id_key.RDS"))
+    saveRDS(id.key, file = file.path(opt$output, "sample_id_key.RDS"))
     
     # Save the rest of the metadata as a csv
     geo.meta <- data.frame(geo.meta[[1]]@phenoData@data)
-    write.csv(geo.meta, file = file.path("meta_data.csv"))
+    write.csv(geo.meta, file = file.path(opt$output, "meta_data.csv"))
     
     rm(geo.meta)
 } else {
-    id.key <- readRDS(file.path("sample_id_key.RDS"))
+    id.key <- readRDS(file.path(opt$output, "sample_id_key.RDS"))
 }
 
 #----------------------Change sample column names to GSM-----------------------#
