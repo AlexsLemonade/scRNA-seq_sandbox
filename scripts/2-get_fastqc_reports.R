@@ -1,6 +1,12 @@
 # CCDL ALSF 2018
-# C. Savonen 
-# 
+# C. Savonen
+#
+# Get a summary file of individual sequence quality reports from the FASTQC files.
+
+# Options:
+# "-d" - directory/path of where the fastqc reports have been placed.
+# "-o" - directory/path where the output summary of fastqc will be placed
+
 # Get sequence quality reports from the FASTQC runs in a summary
 library(optparse)
 library(fastqcr)

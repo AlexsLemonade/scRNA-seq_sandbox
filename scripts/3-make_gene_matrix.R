@@ -1,7 +1,23 @@
-# C. Savonen 
-# CCDL for ALSF 
+# CCDL for ALSF 2018
+# C. Savonen
 #
-# Purpose: Make gene matrix and do quality testing 
+# Purpose: After salmon has been run successfully on your samples. Assemble the
+# Individual samples quantification data into a matrix. Also use the ensembl IDs
+# to obtain gene symbols. Then convert SRR IDs to GSM IDs. Then save this matrix
+# to an RDS file.
+
+# options:
+# "-d" - Directory of where individual samples' salmon folders are located.
+# "-o" - Directory of where the output gene matrix RDS file should go.
+# "-g" - GEO ID for the dataset so the metadata can be downloaded.
+
+# Command line example:
+
+# Rscript scripts/3-make_gene_matrix.R \
+# -d data/salmon_quants \
+# -g GSE86445 \
+# -o data
+
 #-------------------------- Get necessary packages-----------------------------#
 if (!("org.Hs.eg.db" %in% installed.packages())) { 
   source("https://bioconductor.org/biocLite.R")
@@ -19,13 +35,16 @@ library(optparse)
 `%>%` <- dplyr::`%>%`
 
 #--------------------------------Set up options--------------------------------#
-option_list <- list( 
-  make_option(opt_str = c("-d", "--dir"), type = "character", default = getwd(),
-              help = "Directory where salmon quantification folders are located",
-              metavar = "character"),
-  make_option(opt_str = c("-o", "--output"), type = "character", default = getwd(),
-              help = "Directory where you would like the output to go",
-              metavar = "character"))
+option_list <- list(
+    make_option(opt_str = c("-d", "--dir"), type = "character", default = getwd(),
+        help = "Directory where salmon quantification folders are located",
+        metavar = "character"),
+    make_option(opt_str = c("-g", "--geo"), type = "character", default = getwd(),
+        help = "GEO ID of dataset for downloading the metadata",
+        metavar = "character"),
+    make_option(opt_str = c("-o", "--output"), type = "character",
+        default = getwd(), help = "Directory where you would like the output to go",
+        metavar = "character"))
 
 opt <- parse_args(OptionParser(option_list = option_list))
 
@@ -69,24 +88,27 @@ saveRDS(salmon.data, file = file.path(opt$output, "salmon.data.RDS"))
 #---------------------Salmon proportion of mapped reads------------------------#
 # Get the proportion of mapped reads
 salmon.prop.assigned <- vapply(salmon.folders, function(x) {
-  rjson::fromJSON(file = file.path(opt$dir, x, "aux_info", "meta_info.json"))$percent_mapped/100
+  rjson::fromJSON(file = file.path(opt$dir, x, "aux_info",
+                                   "meta_info.json"))$percent_mapped/100
   }, FUN.VALUE = 1)
 
 # Make a histogram of this information
 png(file.path(opt$output, "salmon_prop_reads_mapped_hist.ensembl.png"))
-hist(salmon.prop.assigned, xlab = "", main = "Salmon Proportion of Mapped Reads", breaks = 20)
+hist(salmon.prop.assigned, xlab = "", main = "Salmon Proportion of Mapped Reads",
+breaks = 20)
 dev.off()
 
 #--------------------------- Create ID conversion key--------------------------#
 if (!file.exists(file.path("sample_id_key.RDS"))) {
     # Get geo metadata
-    geo.meta <- GEOquery::getGEO("GSE84465", destdir = "data")
+    geo.meta <- GEOquery::getGEO(opt$geo, destdir = "data")
     
     # Get the GSM and SRX ids from the GEO metadata
     id.key <- data.frame(gsm.ids = geo.meta[[1]]@phenoData@data$geo_accession,
     plate.ids = geo.meta[[1]]@phenoData@data$description.1,
     srx.ids = stringr::word(geo.meta[[1]]@phenoData@data$relation.1,
     start = 2, sep = "term="))
+    
     # Import SRA file names
     sra.files <- read.csv(file.path("SRA.files.csv"))[, -1]
     

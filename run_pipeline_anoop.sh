@@ -1,7 +1,9 @@
 #!/bin/bash
-# Note, change the directory to where you want these things to appear before running this code.
+# C. Savonen
+# CCDL for ALSF 2018
+# Purpose: running the pre-processing steps for single cell data.
 
-# Make directories
+#-------------------------------Make directories-------------------------------#
 mkdir anoop_data
 mkdir anoop_data/raw_data
 mkdir anoop_data/aligned_reads
@@ -40,13 +42,19 @@ cd anoop_data
 for line in `cat ../files.to.download.txt`
 do
   # Download forward and reverse fastq files
-  Rscript ../scripts/1-download_sra.R -s $line -q ../ref_files/SRAmetadb.sqlite -d raw_data
+  Rscript ../scripts/1-download_sra.R \
+  -s $line \
+  -q ../ref_files/SRAmetadb.sqlite \
+  -d raw_data
+
   # Run sequence quality control with FASTQC
   /FastQC/fastqc raw_data/* --outdir fastqc_reports
+
   # For each fastq file pair, do QC and then salmon
   for f in `ls raw_data/*_1.fastq.gz | sed 's/_1.fastq.gz//' `
   do
-    "Processing sample ${f}"
+    echo "Processing sample ${f}"
+
     # Run Salmon
     salmon quant -i ../ref_files/human_index -l A \
     -1 ${f}_1.fastq.gz \
@@ -58,7 +66,12 @@ do
 done
 
 # Obtain summary report of fastqc:
-Rscript scripts/2-get_fastqc_reports.R -d anoop_data/fastqc_reports -o results
+Rscript scripts/2-get_fastqc_reports.R \
+-d anoop_data/fastqc_reports \
+-o results
 
 # Make a gene matrix out of the Salmon quantification data
-Rscript scripts/3-make_gene_matrix.R -d anoop_data/salmon_quants -o results
+Rscript scripts/3-make_gene_matrix.R \
+-d anoop_data/salmon_quants \
+-g GSE57872
+-o anoop_data
