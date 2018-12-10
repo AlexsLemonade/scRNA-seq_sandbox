@@ -7,6 +7,12 @@
 # "-d" - directory/path of where the fastqc reports have been placed. 
 # "-o" - directory/path where the output summary of fastqc will be placed
 
+# Example use from bash: 
+
+# Rscript scripts/2-get_fastqc_reports.R \
+# -d data/fastqc_reports \
+# -o results
+
 # Need optparse and fasqcr packages. 
 library(optparse)
 library(fastqcr)
