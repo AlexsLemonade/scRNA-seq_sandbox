@@ -1,7 +1,13 @@
 # CCDL ALSF 2018
 # C. Savonen 
 # 
-# Get sequence quality reports from the FASTQC runs in a summary
+# Get a summary file of individual sequence quality reports from the FASTQC files. 
+
+# Options: 
+# "-d" - directory/path of where the fastqc reports have been placed. 
+# "-o" - directory/path where the output summary of fastqc will be placed
+
+# Need optparse and fasqcr packages. 
 library(optparse)
 library(fastqcr)
 
@@ -15,6 +21,7 @@ option_list <- list(
             help = "Directory where results should be placed",
             metavar = "character"))
 
+# Parse options.
 opt <- parse_args(OptionParser(option_list = option_list))
 
 # Magrittr pipe
