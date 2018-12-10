@@ -1,12 +1,24 @@
+# CCDL for ALSF 2018
 # C. Savonen 
-# CCDL for ALSF 
 #
-# Purpose: Make gene matrix and do quality testing 
+# Purpose: After salmon has been run successfully on your samples. Assemble the
+# Individual samples quantification data into a matrix. Also use the ensembl IDs
+# to obtain gene symbols. Then convert SRR IDs to GSM IDs. Then save this matrix
+# to an RDS file. 
+
+# options: 
+# "-d" - Directory of where individual samples' salmon folders are located. 
+# "-o" - Directory of where the output gene matrix RDS file should go. 
+# "-g" - GEO ID for the dataset so the metadata can be downloaded. 
+
 #-------------------------- Get necessary packages-----------------------------#
+# Later can add an option for other species, but for now this is just for human.
 if (!("org.Hs.eg.db" %in% installed.packages())) { 
   source("https://bioconductor.org/biocLite.R")
   biocLite("org.Hs.eg.db", suppressUpdates = TRUE)
 }
+# RJSON package installation will be added to the dockerfile so this doesn't need 
+# to be here. 
 if (!("rjson" %in% installed.packages())) {
   install.packages("rjson", suppressUpdates = FALSE)
 }
@@ -23,10 +35,14 @@ option_list <- list(
   make_option(opt_str = c("-d", "--dir"), type = "character", default = getwd(),
               help = "Directory where salmon quantification folders are located",
               metavar = "character"),
+  make_option(opt_str = c("-g", "--geo"), type = "character", default = getwd(),
+              help = "GEO ID of dataset for downloading the metadata",
+              metavar = "character"),
   make_option(opt_str = c("-o", "--output"), type = "character", default = getwd(),
               help = "Directory where you would like the output to go",
               metavar = "character"))
 
+# Parse options
 opt <- parse_args(OptionParser(option_list = option_list))
 
 #------------------------------Import Salmon reads-----------------------------#
@@ -39,6 +55,8 @@ salmon <- lapply(salmon.folders, function(x) read.table(file.path(opt$dir, x, "q
 
 # Get Salmon ensembl gene annotation IDs
 salmon.annot <- strsplit(as.character(salmon[[1]]$Name), "\\|")
+
+# Get rid of the decimals for transcript version
 salmon.annot <- vapply(salmon.annot, function(x) {
                         x <- grep("ENST", x, value = TRUE)
                              gsub("\\.[0-9]+$", "", x)
@@ -80,13 +98,15 @@ dev.off()
 #--------------------------- Create ID conversion key--------------------------#
 if (!file.exists(file.path("sample_id_key.RDS"))) {
     # Get geo metadata
-    geo.meta <- GEOquery::getGEO("GSE84465", destdir = "data")
+    geo.meta <- GEOquery::getGEO(opt$geo, destdir = "data")
     
     # Get the GSM and SRX ids from the GEO metadata
+    # NOT sure if all these references will work for other datasets
     id.key <- data.frame(gsm.ids = geo.meta[[1]]@phenoData@data$geo_accession,
     plate.ids = geo.meta[[1]]@phenoData@data$description.1,
     srx.ids = stringr::word(geo.meta[[1]]@phenoData@data$relation.1,
     start = 2, sep = "term="))
+  
     # Import SRA file names
     sra.files <- read.csv(file.path("SRA.files.csv"))[, -1]
     
