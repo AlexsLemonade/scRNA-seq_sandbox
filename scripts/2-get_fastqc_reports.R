@@ -36,7 +36,7 @@ write.csv(qc_stats(qc), file = file.path(opt$output,
 # Filter out samples that have failed the quality tests
 qc_filtered <- data.frame(qc) %>%
   dplyr::select(sample, module, status) %>%    
-  dplyr::filter(status %in% c("WARN", "FAIL")) %>%
+  dplyr::filter(status %in% "PASS") %>%
   dplyr::arrange(sample)
 
 # Write filtered results to a csv file

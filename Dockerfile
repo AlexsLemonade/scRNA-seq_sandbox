@@ -29,7 +29,7 @@ RUN apt-get update -qq && apt-get -y --no-install-recommends install \
   && R -e "BiocInstaller::biocLite(c('SRAdb', 'DBI'), suppressUpdates = TRUE)" 
 
 # Install Rsubread by itself
-RUN R -e 'source("http://bioconductor.org/biocLite.R"); biocLite("Rsubread")'
+RUN R -e 'source("http://bioconductor.org/biocLite.R"); biocLite(c("scone", "EdgeR", "sva", "scde", "slalom", "zinbwave", "Rsubread", "scran", "limma", "DESeq2", "SCNorm", "RUVNormalize"))'
 
 # Install other things
 RUN apt-get update && apt-get install -y \

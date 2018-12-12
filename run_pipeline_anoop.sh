@@ -6,7 +6,6 @@
 #-------------------------------Make directories-------------------------------#
 mkdir anoop_data
 mkdir anoop_data/raw_data
-mkdir anoop_data/aligned_reads
 mkdir anoop_data/fastqc_reports
 mkdir anoop_data/salmon_quants
 mkdir results

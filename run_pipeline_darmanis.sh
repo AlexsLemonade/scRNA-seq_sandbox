@@ -3,7 +3,6 @@
 # Make directories
 mkdir darmanis_data
 mkdir darmanis_data/raw_data
-mkdir darmanis_data/aligned_reads
 mkdir darmanis_data/fastqc_reports
 mkdir darmanis_data/salmon_quants
 mkdir results

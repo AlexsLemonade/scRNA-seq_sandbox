@@ -3,7 +3,7 @@
 
 # This script is used in a bash loop to download a single file from command line.
 # Options:
-#  "-s" Run sample ID of rht RNA-seq data you would like to download.
+#  "-s" Run sample ID of the RNA-seq data you would like to download.
 #  "-d" Path to directory where you would like the data downloaded to go
 #  "-q" Path to downloaded metadata SQL file from GEO. Usually file is "SRAmetadb.sqlite"
 

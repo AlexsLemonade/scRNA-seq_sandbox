@@ -1,0 +1,85 @@
+---
+title: "Normalization_Comparison"
+author: "C. Savonen, CCDL for ALSF"
+date: "12/10/2018"
+output: html_document
+---
+```{r Install Packages}
+library("Seurat")
+if (!requireNamespace("BiocManager", quietly = TRUE))
+    install.packages("BiocManager")
+BiocManager::install(c("scone", "EdgeR", "sva", "scde", "slalom", "zinbwave", "Rsubread", "scran", "limma", "DESeq2", "SCNorm", "RUVNormalize"), version = "3.8")
+```
+
+```{r Load data}
+darmanis <- readRDS(file.path("darmanis_data", "salmon.data.counts.RDS"))
+anoop <- readRDS(file.path("anoop_data", "salmon.data.counts.RDS"))
+```
+
+```{r Load TPM data}
+darmanis <- as.list(darmanis,readRDS(file.path("darmanis_data", "salmon.data.RDS")))
+anoop <- as.list(anoop,readRDS(file.path("anoop_data", "salmon.data.RDS")))
+```
+
+```{r Seurat}
+# Get gene factor vector to sort by
+genes <- as.factor(salmon.data$gene)
+
+# Change data to a matrix with only one gene entry per 
+salmon.data <- as.list(salmon.data[,-c(1:2)])
+salmon.data <- do.call("cbind", 
+              lapply(salmon.data, function(sample) tapply(sample, genes, sum))
+              )
+
+# Make our data into a Seurat Object
+salmon.seurat <- CreateSeuratObject(raw.data = salmon.data, min.cells = 3,
+                                    min.genes = 200, project = "darmanis_gbm")
+# Filter out cells
+salmon.seurat <- FilterCells(object = salmon.seurat, 
+                             subset.names = c("nGene", "percent_mito"), 
+                             low.thresholds = c(200, -Inf), 
+                             high.thresholds = c(2500, 0.05))
+
+# Normalizing the data
+salmon.seurat <- NormalizeData(object = salmon.seurat, 
+                               normalization.method = "LogNormalize", 
+                               scale.factor = 10000)
+```
+
+```{r ComBat}
+batch = pheno$batch
+modcombat = model.matrix(~1, data=pheno)
+combat_edata = ComBat(dat=edata, batch=batch, mod=modcombat, par.prior=TRUE, prior.plots=TRUE)
+```
+
+```{r EdgeR Normalizations}
+keep <- rowSums(cpm(y) > 1) >=3
+y <- y[keep, , keep.lib.sizes=FALSE]
+calcNormFactors(y)
+```
+
+```{r SCNorm}
+SCnorm(Data = NULL, Conditions = NULL, PrintProgressPlots = FALSE,
+      reportSF = FALSE, FilterCellNum = 10, FilterExpression = 0,
+      Thresh = 0.1, K = NULL, NCores = NULL, ditherCounts = FALSE,
+      PropToUse = 0.25, Tau = 0.5, withinSample = NULL, useSpikes = FALSE,
+      useZerosToScale = FALSE)
+```
+
+```{r RUV}
+
+
+```
+```{Normalization Methods}
+DESeq
+RUV
+GRM
+UQ
+scran
+SCDE 
+BASiCS
+```
+
+```{Normalization evaluations}
+
+```
