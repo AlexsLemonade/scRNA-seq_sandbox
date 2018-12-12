@@ -1,19 +1,13 @@
 # CCDL ALSF 2018
-# C. Savonen 
-# 
-# Get a summary file of individual sequence quality reports from the FASTQC files. 
+# C. Savonen
+#
+# Get a summary file of individual sequence quality reports from the FASTQC files.
 
-# Options: 
-# "-d" - directory/path of where the fastqc reports have been placed. 
+# Options:
+# "-d" - directory/path of where the fastqc reports have been placed.
 # "-o" - directory/path where the output summary of fastqc will be placed
 
-# Example use from bash: 
-
-# Rscript scripts/2-get_fastqc_reports.R \
-# -d data/fastqc_reports \
-# -o results
-
-# Need optparse and fasqcr packages. 
+# Get sequence quality reports from the FASTQC runs in a summary
 library(optparse)
 library(fastqcr)
 
@@ -27,7 +21,6 @@ option_list <- list(
             help = "Directory where results should be placed",
             metavar = "character"))
 
-# Parse options.
 opt <- parse_args(OptionParser(option_list = option_list))
 
 # Magrittr pipe
@@ -43,7 +36,7 @@ write.csv(qc_stats(qc), file = file.path(opt$output,
 # Filter out samples that have failed the quality tests
 qc_filtered <- data.frame(qc) %>%
   dplyr::select(sample, module, status) %>%    
-  dplyr::filter(status %in% c("WARN", "FAIL")) %>%
+  dplyr::filter(status %in% "PASS") %>%
   dplyr::arrange(sample)
 
 # Write filtered results to a csv file
