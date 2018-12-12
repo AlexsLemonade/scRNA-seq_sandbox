@@ -1,0 +1,140 @@
+---
+title: "SCNorm Data Processing"
+author: "C. Savonen, CCDL for ALSF"
+date: "12/10/2018"
+output: html_document
+---
+```{r Install Packages}
+if (!("SCnorm" %in% installed.packages())) {
+  source("https://bioconductor.org/biocLite.R")
+  biocLite("SCnorm", suppressUpdates = FALSE)
+}
+library("SCnorm")
+```
+
+```{r Import Data}
+tx.counts <- readRDS(file.path("anoop_data", "patel.counts.data.RDS"))
+```
+
+```{r Format the data}
+tx.counts <- SingleCellExperiment::SingleCellExperiment(
+                                            assays = list('counts' = tx.counts))
+conditions = rep(c(1), each= 90)
+
+pdf("check_exampleData_count-depth_evaluation.pdf", height=5, width=7)
+countDeptEst <- plotCountDepth(Data = tx.counts, Conditions = Conditions,
+                 FilterCellProportion = .1, NCores=3)
+dev.off()
+
+tx.counts = SingleCellExperiment::counts(tx.counts)
+# Total Count normalization, Counts Per Million, CPM.
+tx.counts.CPM <- t((t(tx.counts) / colSums(tx.counts)) *
+                        mean(colSums(tx.counts)))
+
+
+countDeptEst.CPM <- plotCountDepth(Data = tx.counts, 
+                                  NormalizedData = tx.counts.CPM,
+                                  Conditions = Conditions,
+                                  FilterCellProportion = .1, NCores=3)
+
+str(countDeptEst.CPM)
+head(countDeptEst.CPM[[1]])
+
+## ----eval=TRUE-------------------------------------------------------------
+Conditions = rep(c(1), each= 90)
+pdf("MyNormalizedData_k_evaluation.pdf")
+par(mfrow=c(2,2))
+DataNorm <- SCnorm(Data = tx.counts, 
+                   Conditions = Conditions,
+                   PrintProgressPlots = TRUE,
+                   FilterCellNum = 10,
+                   NCores=3, reportSF = TRUE)
+dev.off()
+DataNorm
+NormalizedData <- SingleCellExperiment::normcounts(DataNorm)
+NormalizedData[1:5,1:5]
+
+
+## ----eval=TRUE-------------------------------------------------------------
+GenesNotNormalized <- results(DataNorm, type="GenesFilteredOut")
+str(GenesNotNormalized)
+
+## ----eval=TRUE-------------------------------------------------------------
+ScaleFactors <- results(DataNorm, type="ScaleFactors")
+str(ScaleFactors)
+
+## ----eval=TRUE, fig.height=5, fig.width=7, fig.align='center', out.width='0.4\\textwidth'----
+
+countDeptEst.SCNORM <- plotCountDepth(Data = tx.counts, NormalizedData = NormalizedData,
+                                   Conditions = Conditions,
+                                   FilterCellProportion = .1, NCores=3)
+
+str(countDeptEst.SCNORM)
+head(countDeptEst.SCNORM[[1]])
+
+## ----eval=FALSE------------------------------------------------------------
+#  Conditions = rep(c(1, 2), each= 90)
+#  DataNorm <- SCnorm(Data = MultiCondData,
+#                    Conditions = Conditions,
+#                    PrintProgressPlots = TRUE
+#                    FilterCellNum = 10,
+#                    NCores=3,
+#                    useZerosToScale=TRUE)
+
+## ----eval=FALSE------------------------------------------------------------
+#  checkCountDepth(Data = umiData, Conditions = Conditions,
+#                  FilterCellProportion = .1, FilterExpression = 2)
+#  
+#  DataNorm <- SCnorm(Data = umiData, Conditions= Conditions,
+#                    PrintProgressPlots = TRUE,
+#                    FilterCellNum = 10,
+#                    PropToUse = .1,
+#                    Thresh = .1,
+#                    ditherCounts = TRUE)
+
+## ----eval=FALSE------------------------------------------------------------
+#  DataNorm <- SCnorm(Data = MultiCondData, Conditions = Conditions,
+#                     PrintProgressPlots = TRUE,
+#                     FilterCellNum = 10, useSpikes=TRUE)
+
+## ----eval=TRUE, fig.height=5, fig.width=10, fig.align='center', out.width='0.8\\textwidth'----
+#Colors each sample:
+exampleGC <- runif(dim(tx.counts)[1], 0, 1)
+names(exampleGC) <- rownames(tx.counts)
+withinFactorMatrix <- plotWithinFactor(tx.counts, withinSample = exampleGC)
+
+head(withinFactorMatrix)
+
+## ----eval=TRUE, fig.height=3, fig.width=4, fig.align='center'--------------
+#Colors samples by Condition:
+Conditions <- rep(c(1,2), each=45) 
+withinFactorMatrix <- plotWithinFactor(tx.counts, withinSample = exampleGC,
+                   Conditions=Conditions)
+
+head(withinFactorMatrix)
+
+## ----eval=FALSE------------------------------------------------------------
+#  # To run correction use:
+#  DataNorm <- SCnorm(tx.counts, Conditions,
+#                     PrintProgressPlots = TRUE,
+#                     FilterCellNum = 10, withinSample = exampleGC)
+#  library(dynamicTreeCut)
+#  distM <- as.dist( 1 - cor(BigData, method = 'spearman'))
+#  htree <- hclust(distM, method='ward.D')
+#  clusters <- factor(unname(cutreeDynamic(htree, minClusterSize = 50,
+#                      method="tree", respectSmallClusters = FALSE)))
+#  names(clusters) <- colnames(BigData)
+#  Conditions = clusters
+#  
+#  DataNorm <- SCnorm(Data = BigData,
+#                    Conditions = Conditions,
+#                    PrintProgressPlots = TRUE
+#                    FilterCellNum = 10,
+#                    NCores=3, useZerosToScale=TRUE)
+
+## ----eval=FALSE------------------------------------------------------------
+#  MedExpr <- apply(Data, 1, function(c) median(c[c != 0]))
+#  plot(density(log(MedExpr), na.rm=T))
+#  abline(v=log(c(1,2,3,4,5)))
+#  # might set FilterExpression equal to one of these values.
+```

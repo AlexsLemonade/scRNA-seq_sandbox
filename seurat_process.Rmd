@@ -1,5 +1,5 @@
 ---
-title: "Seurat_data_processing"
+title: "Seurat Data Processing"
 author: "C.Savonen, CCDL for ALSF"
 date: "12/5/2018"
 output: html_document
@@ -18,7 +18,7 @@ library(Seurat)
 
 #### Import gene expression matrix data
 ```{r Import Data}
-salmon.data <- readRDS(file.path("data", "salmon.data.RDS"))
+tx.counts <- readRDS(file.path("anoop_data", "patel.counts.data.RDS"))
 ```
 
 #### Mitochondrial genes by their ensembl IDs
@@ -107,7 +107,7 @@ salmon.seurat <- FindVariableGenes(object = salmon.seurat, mean.function = ExpMe
 #### Save the normalized data
 ```{r Save Data to RDS}
 # Save this seurat object to an RDS file
-saveRDS(salmon.seurat, file = file.path("data", "salmon.seurat"))
+saveRDS(salmon.seurat, file = file.path("data", "seurat.processed.RDS"))
 ```
 
 ```{r}
