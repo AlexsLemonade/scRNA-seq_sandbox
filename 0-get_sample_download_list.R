@@ -74,7 +74,7 @@ opt <- parse_args(OptionParser(option_list = option_list))
 
 # Check if the sql file from GEO is where the option says.
 if (is.null(opt$sql)) {
-    stop("The path to the GEO sql file has not been specified.")
+    stop("The path to the GEO's SRAmetadb.sqlite file has not been specified.")
 }
 #------------------- Connect to NCBI's SRA SQL database------------------------#
 # Get sra path
