@@ -1,7 +1,5 @@
 # CCDL ALSF 2018
 # C. Savonen 
-# CCDL ALSF 2018
-# C. Savonen
 #
 # Get list of all the samples for the given SRP Id. Optionally, refresh a sample
 # list to not include already downloaded files. Makes "files.to.download.txt" file
@@ -32,9 +30,8 @@
 # Rscript scripts/0-get_sample_download_list.R \
 # -i SRP079058 \
 # -d darmanis_data/salmon_quants \
-# -q ref_files/SRAmetadb.sqlite
+# -q ref_files/SRAmetadb.sqlite 
 
-# Get raw reads for the given SRP Id
 # Magrittr pipe
 `%>%` <- dplyr::`%>%`
 
@@ -72,7 +69,7 @@ option_list <- list(
 # Parse options
 opt <- parse_args(OptionParser(option_list = option_list))
 
-# Check if the sql file path has been given. If not, stop.
+# Check if the sql file from GEO is where the option says.
 if (is.null(opt$sql)) {
     stop("The path to the GEO's SRAmetadb.sqlite file has not been specified.")
 }
@@ -86,7 +83,7 @@ con <- DBI::dbConnect(RSQLite::SQLite(), opt$sql)
 
 # Get a list of the samples associated with the project we are interested in
 files <- listSRAfile(opt$id, con)
-write.csv(files, file.path(opt$output, "SRA.files.csv"))
+write.csv(files, "SRA.files.csv")
 
 # If we want to restrict the number of samples being processed:
 if (!is.null(opt$number)){

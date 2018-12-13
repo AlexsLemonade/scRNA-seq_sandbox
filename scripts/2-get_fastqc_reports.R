@@ -21,15 +21,14 @@ library(fastqcr)
 # Get options using optparse
 option_list <- list( 
   make_option(opt_str = c("-d", "--dir"), type = "character",
-              default = NULL,
-              help = "Directory of the fastqc reports",
-              metavar = "character"),
+            default = NULL,
+            help = "Directory of the fastqc reports",
+            metavar = "character"),
   make_option(opt_str = c("-o", "--output"), type = "character", 
-              default = getwd(),
-              help = "Directory where results should be placed",
-              metavar = "character"))
+            default = getwd(), 
+            help = "Directory where results should be placed",
+            metavar = "character"))
 
-# Parse options
 opt <- parse_args(OptionParser(option_list = option_list))
 
 # Magrittr pipe

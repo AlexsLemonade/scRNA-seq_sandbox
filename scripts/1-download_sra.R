@@ -23,7 +23,7 @@ library(SRAdb)
 # Get options from command line
 option_list <- list( 
   make_option(opt_str = c("-s", "--sample"), type = "character",
-              default = NULL, help = "SRR Run Sample ID of the RNA-seq
+              default = NULL, help = "SRR Run sample ID of the RNA-seq
               data you would like to download.", metavar = "character"),
   make_option(opt_str = c("-d", "--dir"), type = "character",
               default = getwd(), help = "Directory where you would
@@ -41,5 +41,5 @@ srafile <- file.path(opt$sql)
 # Connect to SQL database
 con <- dbConnect(RSQLite::SQLite(), srafile)
 
-# Download the sample
-getFASTQfile(opt$sample, con, destDir = opt$dir))
+# Download each sample
+getFASTQfile(opt$sample, con, destDir = opt$dir)
