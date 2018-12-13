@@ -1,7 +1,7 @@
 # CCDL ALSF 2018
 # C. Savonen 
 #
-# Get list of all the samples for the given SRP Id. Optionally, refresh a sample
+# Purpose: Get list of all the samples for the given SRP Id. Optionally, refresh a sample
 # list to not include already downloaded files. Makes "files.to.download.txt" file
 # which run_pipeline.sh files use for getting the sample IDs to download.
 
@@ -11,10 +11,10 @@
 #        This directory will be created if it doesn't exist, but if it does
 #        exist and the refresh option is used, then this directory will be
 #        evaluated for what samples have already been downloaded.
-# "-o" - Directory where you would like other output files (SRA.files.csv and
-#        files.to.download.txt to go) default is current directory.(Optional)
 # "-q" - Directory path to SRAmetadb.sqlite. The sql file will be downloaded
 #        if the file does not exist at the given location.
+# "-o" - Directory where you would like other output files (SRA.files.csv and
+#        files.to.download.txt to go) default is current directory.(Optional)
 # "-r" - If used, the directory given will be evaluated for what samples have
 #        been downloaded and those samples will not be added to the list for
 #        re-download. (Optional)
@@ -47,14 +47,13 @@ option_list <- list(
   make_option(opt_str = c("-d", "--dir"), type = "character", default = getwd(),
               help = "Directory where you would like the data downloaded to go",
               metavar = "character"),
-  make_option(opt_str = c("-o", "--output"), type = "character",
-              default = getwd(), help = "Directory where you would like
-              other output files to go",
-              metavar = "character"),
   make_option(opt_str = c("-q", "--sql"), type = "character", default = NULL,
               help = "Directory path to SRAmetadb.sqlite. If the file does not
               exist at the given directory, it will be downloaded",
               metavar = "character"),
+  make_option(opt_str = c("-o", "--output"), type = "character",
+              default = getwd(), help = "Directory where you would like
+              other output files to go", metavar = "character"),
   make_option(c("-r", "--refresh"), action ="store_false", default = TRUE,
               help = "Use this option if you want to re-process already
               existing files. Default is to not re-download already
