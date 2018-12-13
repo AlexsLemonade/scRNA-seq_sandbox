@@ -1,0 +1,23 @@
+---
+title: "Get Metadata"
+author: "C. Savonen, CCDL for ALSF"
+date: "12/13/2018"
+output: html_document
+---
+
+```{r GEO}
+library(GEOquery)
+```
+
+```{r Put GSE's here}
+gse <- c("GSE84465", "GSE57872")
+```
+
+```{r Download each and write to a tsv}
+metadata <- lapply(gse, function(x) {
+                   meta <- getGEO(x)
+                   readr::write_tsv(meta[[1]]@phenoData@data, 
+                                    file.path("results", paste0(x, "_meta.tsv")))
+            })
+```
+

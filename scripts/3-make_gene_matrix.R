@@ -19,7 +19,6 @@
 # Rscript scripts/3-make_gene_matrix.R \
 # -d data/salmon_quants \
 # -o data \
-# -g GSE86445 \
 # -m 0.5 \
 # -l "patel"
 
@@ -48,9 +47,6 @@ library(tximport)
 option_list <- list(
     make_option(opt_str = c("-d", "--dir"), type = "character", default = getwd(),
                 help = "Directory where salmon quantification folders are located",
-                metavar = "character"),
-    make_option(opt_str = c("-g", "--geo"), type = "character", default = getwd(),
-                help = "GEO ID of dataset for downloading the metadata",
                 metavar = "character"),
     make_option(opt_str = c("-o", "--output"), type = "character",
                 default = getwd(), help = "Directory where you would like the

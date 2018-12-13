@@ -18,12 +18,12 @@
 # -l "patel"
 
 #-------------------------- Get necessary packages-----------------------------#
-# Install SCnorm if it isn't
-if (!("SCnorm" %in% installed.packages())) {
+# Install RUVnormalize if it isn't
+if (!("RUVnormalize" %in% installed.packages())) {
   source("https://bioconductor.org/biocLite.R")
-  biocLite("SCnorm", suppressUpdates = FALSE)
+  biocLite("RUVnormalize", suppressUpdates = FALSE)
 }
-library(SCnorm)
+library(RUVnormalize)
 library(optparse)
 
 # Magrittr pipe
@@ -65,10 +65,7 @@ meta <- readr::read_delim(meta)
 # Retrieve colname 
 batch.info <- meta[ , match(meta.col, colnames(meta))]
 
-# put data into format that scnorm likes
-scnorm <- SCnorm::getCounts(tx.counts)
-scnorm <- SCnorm(Data = tx.counts, Conditions = batch.info, PrintProgressPlots = TRUE,
-                  FilterCellNum = 10, NCores=3)
+
 
 # Save this scnorm data to tsv file
 readr::write_tsv(seurat, file = file.path(opt$output,
