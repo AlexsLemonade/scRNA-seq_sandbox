@@ -5,5 +5,8 @@
 
 
 # Ignore data, there’s too much of it
-data
-hisat2-2.1.0
+patel_data
+darmanis_data
+results
+ref_files
+

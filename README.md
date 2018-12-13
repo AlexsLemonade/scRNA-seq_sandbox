@@ -1,57 +1,34 @@
-scRNA-seq_workflow
+# scRNA-seq_workflow
 
-## Step 1: Identifying a dataset to use as an example pipeline:
-### Q1: Which technology is most commonly used?
-- 10xGenomics has been most common recently according to [Angerer et al, 2017](https://www.sciencedirect.com/science/article/pii/S245231001730077X)
-- Smart-seq and it's paired-end sequencing version, smart-seq2 hae been freqently used over time. Many tumor datasets use one of these technologies or 10Xgenomics
-- Parts of 10X's processing is properietary but otherwise it's processing is similar to smart-seq2
-*Conclusion:* Smart-seq2 data would be good for this example
-    
-### Q2: Which tissues are most representative of medulloblastoma?
-Medulloblastoma - subclass of primitive neuroectodermal tumor
-    In order of relatedness (in my very unqualified opinion):
-    1. Other neuroectodermal tumors
-        - Ewing sarcomas (in the periphery, share a similar amount of neural differentiation)
-        - Pineoblastomas (tumors of the pineal gland)
-    2. Glial based tumors (but NOT microglia based) since these all branch off from neural cells at the same point
-        - Gliomas
-        - Oligodendrogliomas
-        - Astrocytic gliomas
-    
-### Q3: What *datasets* are available at this point in time to represent these?
-*Google search terms*: medulloblastoma/brain tumor single cell RNA-seq
-*Top runners:*
-- GSE70630: Tirosh et al, 2016 oligodendroglioma, n = 4825, smartseq2, FACS sorted
-- GSE84465: Darmanis et al, 2017, glioblastoma, n = 3589, smart-seq2, plate sorted
-- GSE102130: Tirosh et al, 2018, K27M mutant glioma, n = 4085, smart-seq2, plate sorted, RAW DATA NOT YET AVAILABLE
-- GSE89567: Tirosh et al, 2017, IDH-mutant astrocytoma, n = 6341, smart-seq2, FACS sorting
-- GSE57872: Anoop et al, 2014, primary glioblastoma, n = 875, smart-seq, plate sorted? 
- 
- *Qualities to look for:*
- - Adequate sample size
- - Published data
- - Raw data available 
- - Data available in common format
- - Tissue relatedness to medulloblastoma 
- - Simple experimental design
- 
-## Step 2: Identifying a tools to use in pipeline
-#### Questions for determining which tools to use:
-- Which are applicable across many technologies? 
-- Which are easy to use? 
-- Which tools are well maintained and seem like they will be for the foreseeable future? 
+## How to use the scripts in this repository: 
+Assuming you have docker installed already on your computer. Follow these steps to run this. Open up command line (Terminal or what have you). 
 
-*Preprocessing*: 
-    sequence quality control: FASTQC
-    adapter trimming: TrimGalore!, Prinseq
-    genome alignment: STAR or HISAT2
-    quantification: Salmon
-    normalization: SCnorm
-    
-*Post-processing*: 
-    RSeQC - quality control
-    Seurat - normalization and quality control, tSNE
-    ASAP
-    Falco
-    Scone
-    scPipe (issue with this is that it is not applicable to paired end sequencing data)
+### 1. Build a docker image with the Dockerfile and create a container
+``` bash
+$ docker build -< Dockerfile -t <DESIRED_IMAGE_TAG_HERE>
+```
+### 2. Run a container with this image
+```bash
+$ docker run -it --rm --mount type=volume,dst=/home/rstudio/kitematic,volume-driver=local,volume-opt=type=none,volume-opt=o=bind,volume-opt=device=<PUT_DESIRED_LOCAL_DIRECTORY_PATH_HERE> -e PASSWORD=<DESIRED_PASSWORD_HERE> -p 8787:8787 <SAME_DESIRED_IMAGE_TAG_AS_ABOVE_HERE>
+```
+### 3. Go to the command line in your container: 
+Run the first line so you can find out what your container id is. 
+```bash
+$ docker ps
+```
+It will be something like "a1b23c45" (a jumble of lower case letters and numbers). And you'll put that here:
+```bash
+$ docker exec -it <CONAINER_ID> bash
+```
+### 4. Run the pipeline to process the data with salmon and create a data matrix.RDS file 
+```bash
+$ cd <PATH_TO_THE_CLONED_REPOSITORY>  
+$ bash run_pipeline.sh
+```
+### 5. Open up Rstudio and run Rmd with the post processing analyses you wish to run
+Go to your internet browser and enter: `localhost:8787`
+In Rstudio, open up one of these and follow along: 
+
+- *seurat_data_processing.Rmd* - takes you through the beginning steps of [Seurat](https://satijalab.org/seurat/get_started.html) pipeline QC.  
+- *tSNE_and_PCA.Rmd* - Runs tSNE and PCA and labels it with metadata to do initial clustering analysis . 
+- *asap_data_prep.Rmd* - Makes data into a format that ASAP will take. [ASAP](https://ASAP.epfl.ch) has a gui with a pipeline with a lot of different options.   
