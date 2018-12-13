@@ -116,5 +116,5 @@ dev.off()
 tx.counts <- tx.counts[, which(salmon.prop.assigned > opt$mapped)]
 
 # Save to an RDS file
-saveRDS(salmon.data, file = file.path(opt$output, 
+saveRDS(tx.counts, file = file.path(opt$output, 
                                       paste0(opt$label, ".counts.data.RDS")))

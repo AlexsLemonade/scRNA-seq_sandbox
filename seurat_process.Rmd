@@ -18,7 +18,7 @@ library(Seurat)
 
 #### Import gene expression matrix data
 ```{r Import Data}
-tx.counts <- readRDS(file.path("anoop_data", "patel.counts.data.RDS"))
+tx.counts <- readRDS(file.path("patel_data", "patel.counts.data.RDS"))
 ```
 
 #### Mitochondrial genes by their ensembl IDs
