@@ -2,14 +2,19 @@
 # C. Savonen
 # CCDL for ALSF 2018
 
-# Purpose: running the pre-processing steps for single cell data. 
+# Purpose: running the pre-processing steps for single cell RNA-seq data.
+
+# Change your directory name, GEO ID, and SRP here. Then run the script.
+directory=darmanis_data
+GSE=GSE84465
+SRP=SRP079058
 
 #----------------------------Make directories---------------------------------#
-mkdir darmanis_data
-mkdir darmanis_data/raw_data
-mkdir darmanis_data/aligned_reads
-mkdir darmanis_data/fastqc_reports
-mkdir darmanis_data/salmon_quants
+mkdir ${dir}
+mkdir ${dir}/raw_data
+mkdir ${dir}/aligned_reads
+mkdir ${dir}/fastqc_reports
+mkdir ${dir}/salmon_quants
 mkdir results
 mkdir ref_files
 
@@ -32,13 +37,13 @@ fi
 # Note: because running all ~3800 samples takes quite a bit of time, use -n option 
 # to set what number of randomly selected samples you would like  
 Rscript scripts/0-get_sample_download_list.R \
--i SRP079058 \
+-i ${SRP} \
 -o results \
--d darmanis_data/salmon_quants \
+-d ${dir}/salmon_quants \
 -q ref_files/SRAmetadb.sqlite \
 
 # Change directory to the data
-cd darmanis_data
+cd ${dir}
 
 # Download each sample and run Salmon on it. Then remove the sample to save room. 
 for line in `cat ../files.to.download.txt`
@@ -69,13 +74,13 @@ done
 
 #-------------------------Obtain summary report of fastqc:---------------------#
 Rscript scripts/2-get_fastqc_reports.R \
--d darmanis_data/fastqc_reports \
+-d ${dir}/fastqc_reports \
 -o results
 
 #-------------Make a gene matrix out of the Salmon quantification data---------#
 Rscript scripts/3-make_gene_matrix.R \
--d darmanis_data/salmon_quants \
--o darmanis_data \
--g GSE84465 \
+-d ${dir}/salmon_quants \
+-o ${dir} \
+-g ${GSE} \
 -m 0.5 \
--l "darmanis"
+-l ${dir}
