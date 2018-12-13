@@ -76,14 +76,12 @@ RUN apt-get update && apt-get install -y --no-install-recommends libncurses5-dev
     cd samtools-1.3.1 && \
     make && make prefix=/usr/local/bin install
 
-
 ENV PACKAGES git gcc make g++ cmake libboost-all-dev liblzma-dev libbz2-dev \
     ca-certificates zlib1g-dev curl unzip autoconf
 ENV SALMON_VERSION 0.9.1
 
 # salmon binary will be installed in /home/salmon/bin/salmon
-
-### don't modify things below here for version updates etc.
+# don't modify things below here for version updates etc.
 
 WORKDIR /home
 
