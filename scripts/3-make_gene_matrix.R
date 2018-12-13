@@ -68,15 +68,16 @@ opt <- parse_args(OptionParser(option_list = option_list))
 #------------------------------Import Salmon reads-----------------------------#
 # Get quant files
 quant.files <- list.files(opt$dir, recursive = TRUE, full.names = TRUE,
-                       pattern = "quant.sf")
+                          pattern = "quant.sf")
 
 # Carry sample names over
 sample.names <- stringr::word(quant.files, 3, sep = "/")
 
 # Get transcript IDs
 transcripts <- read.table(quant.files[[1]], header = TRUE, 
-                 colClasses = c("character", rep("NULL", 4)))
+                          colClasses = c("character", rep("NULL", 4)))
 
+# Get rid of transcript versions so mapIDs isn't confused
 transcripts.wout.ver <- gsub("\\.[0-9]*$", "", transcripts$Name)
 
 # Turn transcript ids to gene ids
@@ -113,7 +114,7 @@ salmon.prop.assigned <- vapply(sample.names, function(x) {
 # Make a histogram of this information
 png(file.path(opt$output, paste0(opt$label, "_prop_reads_mapped_hist.png")))
 hist(salmon.prop.assigned, xlab = "", main = "Proportion of Mapped Reads",
-breaks = 20)
+     breaks = 20)
 dev.off()
 
 # Filter out samples with too low of mapped reads

@@ -14,7 +14,7 @@
 #        exist and the refresh option is used, then this directory will be
 #        evaluated for what samples have already been downloaded.
 # "-o" - Directory where you would like other output files (SRA.files.csv and
-#        files.to.download.txt to go) default is current directory.
+#        files.to.download.txt to go) default is current directory.(Optional)
 # "-q" - Directory path to SRAmetadb.sqlite. The sql file will be downloaded
 #        if the file does not exist at the given location.
 # "-r" - If used, the directory given will be evaluated for what samples have
@@ -32,7 +32,7 @@
 # Rscript scripts/0-get_sample_download_list.R \
 # -i SRP079058 \
 # -d darmanis_data/salmon_quants \
-# -q ref_files/SRAmetadb.sqlite \
+# -q ref_files/SRAmetadb.sqlite
 
 # Get raw reads for the given SRP Id
 # Magrittr pipe
@@ -72,7 +72,7 @@ option_list <- list(
 # Parse options
 opt <- parse_args(OptionParser(option_list = option_list))
 
-# Check if the sql file from GEO is where the option says.
+# Check if the sql file path has been given. If not, stop.
 if (is.null(opt$sql)) {
     stop("The path to the GEO's SRAmetadb.sqlite file has not been specified.")
 }
