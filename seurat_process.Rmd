@@ -4,11 +4,12 @@ author: "C.Savonen, CCDL for ALSF"
 date: "12/5/2018"
 output: html_document
 ---
-### Purpose: Using seurat for post-processing of scRNA-seq Salmon processed data
+### Purpose: Using Seurat for post-processing of scRNA-seq Salmon processed data
 Adpated from the Seurat pbmc tutorial found [here](https://satijalab.org/seurat/pbmc3k_tutorial.html) 
 ```{r Install Packages}
-# Get seurat installed if it isn't already
+# Get Seurat installed if it isn't already
 if (!("Seurat" %in% installed.packages())) {
+  install.packages("remotes")
   remotes::install_github("UCSF-TI/fake-hdf5r")
   install.packages('Seurat')
 }
@@ -18,7 +19,7 @@ library(Seurat)
 
 #### Import gene expression matrix data
 ```{r Import Data}
-tx.counts <- readRDS(file.path("patel_data", "patel.counts.data.RDS"))
+tx.counts <- readRDS(file.path("darmanis_data", "darmanis.counts.RDS"))
 ```
 
 #### Mitochondrial genes by their ensembl IDs
@@ -32,51 +33,31 @@ mtgene <- c("ENSG00000198899", "ENSG00000198727", "ENSG00000198888",
             "ENSG00000198840")
 
 # Get the gene symbol names for these genes add regex for exact matches
-mtgene <- salmon.data$gene[match(mtgene, salmon.data$ensembl)]
+mtgene <- tx.counts$gene[match(mtgene, tx.counts$ensembl)]
 mtgene <- paste0("^", mtgene, "$")
 ```
 
 #### Set up data in Seurat format
 ```{r Set Up Data into seurat format}
-# Get gene factor vector to sort by
-genes <- as.factor(salmon.data$gene)
-
-# Change data to a matrix with only one gene entry per 
-salmon.data <- as.list(salmon.data[,-c(1:2)])
-salmon.data <- do.call("cbind", 
-              lapply(salmon.data, function(sample) tapply(sample, genes, sum))
-              )
-
 # Make our data into a Seurat Object
-salmon.seurat <- CreateSeuratObject(raw.data = salmon.data, min.cells = 3,
+seurat <- CreateSeuratObject(raw.data = tx.counts, min.cells = 3,
                                     min.genes = 200, project = "darmanis_gbm")
 ```
 
 #### Get mitochondrial gene percentages
 ```{r Calculate Mito Percentages}
 # Get those mito genes
-mito.genes <- grep(pattern = paste0(mtgene, collapse = "|"), x = rownames(salmon.seurat@data), value = TRUE)
+mito.genes <- grep(pattern = paste0(mtgene, collapse = "|"), 
+                   x = rownames(seurat@data), value = TRUE)
 
 # Calculate the percentage of mitochonrial transcripts to total transcripts
-percent.mito <- Matrix::colSums(salmon.seurat@raw.data[mito.genes, ])/
-  Matrix::colSums(salmon.seurat@raw.data)
+percent.mito <- Matrix::colSums(seurat@raw.data[mito.genes, ])/
+  Matrix::colSums(seurat@raw.data)
 
 # AddMetaData adds columns to object@meta.data, and is a great place to
 # stash QC stats
-salmon.seurat <- AddMetaData(object = salmon.seurat, metadata = percent.mito,
+seurat <- AddMetaData(object = seurat, metadata = percent.mito,
                              col.name = "percent_mito")
-```
-
-#### Make plots of the samples' statistics 
-```{r Make Sample Set Plots}
-# Make a violin plot
-VlnPlot(object = salmon.seurat, features.plot = c("nGene", "nUMI", "percent_mito"),
-        nCol = 3)
-
-# Examine relationships of nUMI, percent_mito and nGene
-par(mfrow = c(1, 2))
-GenePlot(object = salmon.seurat, gene1 = "nUMI", gene2 = "percent_mito")
-GenePlot(object = salmon.seurat, gene1 = "nUMI", gene2 = "nGene")
 ```
 
 #### Normalize and filter data
@@ -85,29 +66,21 @@ that normalizes the gene expression measurements for each cell by the total expr
 multiplies this by a scale factor (10,000 by default), and log-transforms the result.
 ```{r Filter Normalize}
 # Filter out cells
-salmon.seurat <- FilterCells(object = salmon.seurat, 
+seurat <- FilterCells(object = seurat, 
                              subset.names = c("nGene", "percent_mito"), 
                              low.thresholds = c(200, -Inf), 
                              high.thresholds = c(2500, 0.05))
 
 # Normalizing the data
-salmon.seurat <- NormalizeData(object = salmon.seurat, 
+seurat <- NormalizeData(object = seurat, 
                                normalization.method = "LogNormalize", 
                                scale.factor = 10000)
-```
-
-#### Explore variance to average expression 
-```{r Plot Dispersion vs Avg Exp}
-# Make a variance to average expression plot
-salmon.seurat <- FindVariableGenes(object = salmon.seurat, mean.function = ExpMean, 
-                  dispersion.function = LogVMR, x.low.cutoff = 0.0125,
-                  x.high.cutoff = 3, y.cutoff = 0.5)
 ```
 
 #### Save the normalized data
 ```{r Save Data to RDS}
 # Save this seurat object to an RDS file
-saveRDS(salmon.seurat, file = file.path("data", "seurat.processed.RDS"))
+saveRDS(seurat, file = file.path("darmanis_data", "darmanis.seurat.norm.RDS"))
 ```
 
 ```{r}

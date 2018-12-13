@@ -99,6 +99,10 @@ tx.counts <- data.frame(tx.counts$counts, stringsAsFactors = FALSE)
 gene <- mapIds(org.Hs.eg.db, keys = tx.gene.key$gene , column = "SYMBOL",
                keytype = "ENSEMBL")
 
+# Save these gene symbols for later
+saveRDS(gene, file = file.path(opt$output, 
+                               paste0(opt$label, "associated_gene_symbols.RDS")))
+
 #---------------------Salmon proportion of mapped reads------------------------#
 # Get the proportion of mapped reads
 salmon.prop.assigned <- vapply(sample.names, function(x) {
