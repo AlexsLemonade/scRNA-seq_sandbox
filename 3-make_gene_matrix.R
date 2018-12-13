@@ -3,23 +3,24 @@
 #
 # Purpose: After salmon has been run successfully on your samples. Assemble the
 # Individual samples quantification data into a matrix. Also use the ensembl IDs
-# to obtain gene symbols. Then convert SRR IDs to GSM IDs. Then save this matrix
-# to an RDS file.
+# to obtain gene symbols. Then save this matrix to an RDS file.
 
-# options:
+# Options:
 # "-d" - Directory of where individual samples' salmon folders are located.
 # "-o" - Directory of where the output gene matrix RDS file should go.
 # "-g" - GEO ID for the dataset so the metadata can be downloaded.
 # "-m" - Percent mapped reads (reported as a decimal) cutoff for filtering 
-#        samples. Default is 0.5. 
+#        samples. Default is 0.5.
+# "-l" - Optional label to add to output files. Generally necessary if processing
+#        multiple datasets in the same pipeline.
 # 
 # Command line example:
 
 # Rscript scripts/3-make_gene_matrix.R \
 # -d data/salmon_quants \
+# -o data \
 # -g GSE86445 \
 # -m 0.5 \
-# -o data \
 # -l "patel"
 
 #-------------------------- Get necessary packages-----------------------------#
@@ -63,6 +64,7 @@ option_list <- list(
         metavar = "character")
 )
 
+# Parse options
 opt <- parse_args(OptionParser(option_list = option_list))
 
 #------------------------------Import Salmon reads-----------------------------#
@@ -100,7 +102,7 @@ gene <- mapIds(org.Hs.eg.db, keys = tx.gene.key$gene , column = "SYMBOL",
                keytype = "ENSEMBL")
 
 #---------------------Salmon proportion of mapped reads------------------------#
-# Get the proportion of mapped reads
+# Get the proportion of mapped reads by reading the meta files
 salmon.prop.assigned <- vapply(sample.names, function(x) {
   rjson::fromJSON(file = file.path(opt$dir, x, "aux_info",
                                    "meta_info.json"))$percent_mapped/100

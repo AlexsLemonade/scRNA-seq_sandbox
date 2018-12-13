@@ -33,9 +33,9 @@ fi
 # to set what number of randomly selected samples you would like  
 Rscript scripts/0-get_sample_download_list.R \
 -i SRP079058 \
+-o results \
 -d darmanis_data/salmon_quants \
 -q ref_files/SRAmetadb.sqlite \
--r
 
 # Change directory to the data
 cd darmanis_data
@@ -75,5 +75,7 @@ Rscript scripts/2-get_fastqc_reports.R \
 #-------------Make a gene matrix out of the Salmon quantification data---------#
 Rscript scripts/3-make_gene_matrix.R \
 -d darmanis_data/salmon_quants \
+-o darmanis_data \
 -g GSE84465 \
--o darmanis_data 
+-m 0.5 \
+-l "darmanis"

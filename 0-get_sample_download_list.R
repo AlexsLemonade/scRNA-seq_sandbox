@@ -33,7 +33,6 @@
 # -i SRP079058 \
 # -d darmanis_data/salmon_quants \
 # -q ref_files/SRAmetadb.sqlite \
-# -r
 
 # Get raw reads for the given SRP Id
 # Magrittr pipe
@@ -51,14 +50,17 @@ option_list <- list(
   make_option(opt_str = c("-d", "--dir"), type = "character", default = getwd(),
               help = "Directory where you would like the data downloaded to go",
               metavar = "character"),
-  make_option(opt_str = c("-o", "--output"), type = "character", default = getwd(),
-              help = "Directory where you would like other output files to go",
+  make_option(opt_str = c("-o", "--output"), type = "character",
+              default = getwd(), help = "Directory where you would like
+              other output files to go",
               metavar = "character"),
   make_option(opt_str = c("-q", "--sql"), type = "character", default = NULL,
-              help = "Directory path to SRAmetadb.sqlite. If the file does not exist
-              at the given directory, it will be downloaded", metavar = "character"),
-  make_option(c("-r", "--refresh"), action ="store_true", default = FALSE,
-              help = "Use this option if you don't want to re-process already
+              help = "Directory path to SRAmetadb.sqlite. If the file does not
+              exist at the given directory, it will be downloaded",
+              metavar = "character"),
+  make_option(c("-r", "--refresh"), action ="store_false", default = TRUE,
+              help = "Use this option if you want to re-process already
+              existing files. Default is to not re-download already
               existing files"),
   make_option(c("-n", "--number"), type = "numeric", default = NULL,
               help = "If you'd like to only use a portion of the samples,
@@ -95,7 +97,7 @@ if (!is.null(opt$number)){
 if (!dir.exists(opt$dir)){
   dir.create(opt$dir)
 } else {
-  if (opt$refresh) {
+  if (!opt$refresh) {
     # Determine which files have already been downloaded and remove them from the list
     existing.files <- dir(opt$dir)
     
@@ -105,10 +107,9 @@ if (!dir.exists(opt$dir)){
   }
 }
 # Write the table of the urls
-write.table(files$run, file.path(opt$output, "files.to.download.txt"), col.names = FALSE,
-            row.names = FALSE, sep = "\n", quote = FALSE)
+write.table(files$run, file.path(opt$output, "files.to.download.txt"),
+            col.names = FALSE, row.names = FALSE, sep = "\n", quote = FALSE)
 
 # Can download them direct from here, but I wouldn't recommend doing this unless 
 # you have a small number of samples or a large amount of space on your computer
 # getFASTQfile(files$run, con, destDir = dat.dir)
-
