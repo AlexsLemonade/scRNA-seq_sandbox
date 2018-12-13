@@ -4,11 +4,9 @@
 .DS_Store
 
 
-# Ignore ID refinery mappings for irrelevant platforms
+# Ignore data, there’s too much of it
 patel_data
 darmanis_data
 results
 ref_files
-
-
 

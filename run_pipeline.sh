@@ -1,24 +1,84 @@
 #!/bin/bash
-# Note, change the directory to where you want these things to appear before running this code.
+# C. Savonen
+# CCDL for ALSF 2018
 
-# Make directories
-mkdir STAR
-mkdir fastqc_reports
-mkdir fastqc_trimmed
+# Purpose: running the pre-processing steps for single cell RNA-seq data.
 
-# Note: because running all ~3800 samples takes quite a bit of time, this 
-# example run is set to only run 10 samples. When you want to run the full set, 
-# delete the -n argument.  
+# Change your directory name, GEO ID, and SRP here. Then run the script.
+dir=darmanis_data
+GSE=GSE84465
+SRP=SRP079058
 
-# Download fastq data
-Rscript 0-download_fastq_data.R -d SRP079058 -n 10
+#----------------------------Make directories---------------------------------#
+mkdir ${dir}
+mkdir ${dir}/raw_data
+mkdir ${dir}/aligned_reads
+mkdir ${dir}/fastqc_reports
+mkdir ${dir}/salmon_quants
+mkdir results
+mkdir ref_files
 
-# Run fastqc and get reports
-/bin/FastQC/fastqc raw_data/* --outdir fastqc_reports
-Rscript 1-get_fastqc_reports.R -d ./fastqc_reports
+#--------------Will run setup only if it hasn't been ran before----------------#
+# Will check for genome index first before running
+if [ ! -e ref_files/human_index ]; then
 
-# Trim the adapters from these data:
-/bin/TrimGalore-0.4.5/trim_galore --nextera -o ./fastqc_trimmed ./raw_data/*
+  # Get the human transcriptome
+  curl ftp://ftp.ensembl.org/pub/release-94/fasta/homo_sapiens/cdna/Homo_sapiens.GRCh38.cdna.all.fa.gz \
+    -o ref_files/Homo_sapiens.GRCh38.cdna.all.fa.gz
 
-# Run genome alignmnent with STAR - This is step is not set up yet
-# bash 2-genome_alignment.sh
+  # Index the human transcriptome
+  salmon --threads=16 --no-version-check index \
+    -t ref_files/Homo_sapiens.GRCh38.cdna.all.fa.gz \
+    -i ref_files/human_index \
+    -k 23
+fi
+
+#--------------------------- Get sample list----------------------------------#
+Rscript scripts/0-get_sample_download_list.R \
+  -i ${SRP} \
+  -o results \
+  -d ${dir}/salmon_quants \
+  -q ref_files/SRAmetadb.sqlite \
+
+# Change directory to the data
+cd ${dir}
+
+# Download each sample and run Salmon on it. Then remove the sample to save room. 
+for line in `cat ../files.to.download.txt`
+do
+  # Download forward and reverse fastq files
+  Rscript ../scripts/1-download_sra.R \
+    -s $line \
+    -q ../ref_files/SRAmetadb.sqlite \
+    -d raw_data
+  
+  # Run sequence quality control with FASTQC
+  /FastQC/fastqc raw_data/* --outdir fastqc_reports
+  
+  # For each fastq pair, run salmon
+  for f in `ls raw_data/*_1.fastq.gz | sed 's/_1.fastq.gz//' `
+  do
+    echo "Processing sample ${f}"
+    
+    # Run Salmon
+    salmon quant -i ../ref_files/human_index -l A \
+      -1 ${f}_1.fastq.gz \
+      -2 ${f}_2.fastq.gz \
+      -p 8 -o salmon_quants/$line \
+      --gcBias --seqBias --biasSpeedSamp 5  
+  done
+  rm raw_data/*
+done
+
+#-------------------------Obtain summary report of fastqc:---------------------#
+Rscript scripts/2-get_fastqc_reports.R \
+  -d ${dir}/fastqc_reports \
+  -o results
+
+#-------------Make a gene matrix out of the Salmon quantification data---------#
+Rscript scripts/3-make_gene_matrix.R \
+  -d ${dir}/salmon_quants \
+  -o ${dir} \
+  -g ${GSE} \
+  -m 0.5 \
+  -l ${dir}
