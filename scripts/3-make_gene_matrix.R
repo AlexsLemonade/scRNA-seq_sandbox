@@ -63,7 +63,7 @@ option_list <- list(
 # Parse options
 opt <- parse_args(OptionParser(option_list = option_list))
 
-opt$data <- "patel_data/salmon_quants"
+opt$dir <- "patel_data/salmon_quants"
 opt$output <- "results"
 opt$label <- "patel_data"
 #------------------------------Import Salmon reads-----------------------------#
@@ -95,12 +95,12 @@ tx.import <- tximport::tximport(quant.files, type = "salmon", tx2gene = tx.gene.
                                 countsFromAbundance = "no")
 
 # Make a counts dataframe
-tx.counts <- data.frame('gene' = rownames(tx.import),
-                        tx.counts$counts, stringsAsFactors = FALSE)
+tx.counts <- data.frame(tx.import$counts, stringsAsFactors = FALSE)
+colnames(tx.counts) <- sample.names
 
 # Make a tpms dataframe
-tx.tpm <- data.frame('gene' = rownames(tx.import),
-                     tx.import, stringsAsFactors = FALSE)
+tx.tpm <- data.frame(tx.import$abundance, stringsAsFactors = FALSE)
+colnames(tx.tpm) <- sample.names
 
 #---------------------Salmon proportion of mapped reads------------------------#
 # Get the proportion of mapped reads by reading the meta files
@@ -113,19 +113,26 @@ salmon.prop.assigned <- vapply(sample.names, function(x) {
 png(file.path(opt$output, paste0(opt$label, "_prop_reads_mapped_hist.png")))
 hist(salmon.prop.assigned, xlab = "", main = "Proportion of Mapped Reads",
      breaks = 20)
+
+# Add line for where the percent mapped cutoff is
 abline(v = opt$mapped, col = "red")
 dev.off()
 
 # Filter out samples with too low of mapped reads
 tx.counts <- tx.counts[, which(salmon.prop.assigned > opt$mapped)]
+tx.tpm <- tx.tpm[, which(salmon.prop.assigned > opt$mapped)]
 
 # Print report of how many samples are left
 cat("Number of samples that have percent mapped reads greater than cutoff:",
     length(which(salmon.prop.assigned > opt$mapped)))
 
+# Add a gene column for later:
+tx.counts <- data.frame("gene" = rownames(tx.counts), tx.counts)
+tx.tpm <- data.frame("gene" = rownames(tx.tpm), tx.tpm)
+
 # Save both tpms and counts to tsv files
-readr::write_tsv(tx.counts, file.path(opt$output,
+readr::write_tsv(tx.counts, file.path(opt$dir,
                                       paste0(opt$label, "_counts.tsv")))
-readr::write_tsv(tx.tpm, file.path(opt$output,
+readr::write_tsv(tx.tpm, file.path(opt$dir,
                                       paste0(opt$label, "_tpms.tsv")))
 
