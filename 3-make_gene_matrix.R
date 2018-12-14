@@ -19,7 +19,6 @@
 # Rscript scripts/3-make_gene_matrix.R \
 # -d data/salmon_quants \
 # -o data \
-# -g GSE86445 \
 # -m 0.5 \
 # -l "patel"
 
@@ -49,9 +48,6 @@ option_list <- list(
     make_option(opt_str = c("-d", "--dir"), type = "character", default = getwd(),
                 help = "Directory where salmon quantification folders are located",
                 metavar = "character"),
-    make_option(opt_str = c("-g", "--geo"), type = "character", default = getwd(),
-                help = "GEO ID of dataset for downloading the metadata",
-                metavar = "character"),
     make_option(opt_str = c("-o", "--output"), type = "character",
                 default = getwd(), help = "Directory where you would like the
                 output to go", metavar = "character"),
@@ -67,6 +63,9 @@ option_list <- list(
 # Parse options
 opt <- parse_args(OptionParser(option_list = option_list))
 
+opt$dir <- "patel_data/salmon_quants"
+opt$output <- "results"
+opt$label <- "patel_data"
 #------------------------------Import Salmon reads-----------------------------#
 # Get quant files
 quant.files <- list.files(opt$dir, recursive = TRUE, full.names = TRUE,
@@ -92,11 +91,16 @@ tx.gene.key <- data.frame('transcript' = transcripts$Name,
 tx.gene.key <- tx.gene.key[!is.na(tx.gene.key$gene),]
 
 # Do the thing
-tx.counts <- tximport::tximport(quant.files, type = "salmon", tx2gene = tx.gene.key,
+tx.import <- tximport::tximport(quant.files, type = "salmon", tx2gene = tx.gene.key,
                                 countsFromAbundance = "no")
 
-# Make as a dataframe
-tx.counts <- data.frame(tx.counts$counts, stringsAsFactors = FALSE)
+# Make a counts dataframe
+tx.counts <- data.frame(tx.import$counts, stringsAsFactors = FALSE)
+colnames(tx.counts) <- sample.names
+
+# Make a tpms dataframe
+tx.tpm <- data.frame(tx.import$abundance, stringsAsFactors = FALSE)
+colnames(tx.tpm) <- sample.names
 
 #---------------------Salmon proportion of mapped reads------------------------#
 # Get the proportion of mapped reads by reading the meta files
@@ -109,11 +113,26 @@ salmon.prop.assigned <- vapply(sample.names, function(x) {
 png(file.path(opt$output, paste0(opt$label, "_prop_reads_mapped_hist.png")))
 hist(salmon.prop.assigned, xlab = "", main = "Proportion of Mapped Reads",
      breaks = 20)
+
+# Add line for where the percent mapped cutoff is
+abline(v = opt$mapped, col = "red")
 dev.off()
 
 # Filter out samples with too low of mapped reads
 tx.counts <- tx.counts[, which(salmon.prop.assigned > opt$mapped)]
+tx.tpm <- tx.tpm[, which(salmon.prop.assigned > opt$mapped)]
 
-# Save to an RDS file
-readr::write_tsv(salmon.data, file = file.path(opt$output, 
-                                      paste0(opt$label, ".counts.data.tsv")))
+# Print report of how many samples are left
+cat("Number of samples that have percent mapped reads greater than cutoff:",
+    length(which(salmon.prop.assigned > opt$mapped)))
+
+# Add a gene column for later:
+tx.counts <- data.frame("gene" = rownames(tx.counts), tx.counts)
+tx.tpm <- data.frame("gene" = rownames(tx.tpm), tx.tpm)
+
+# Save both tpms and counts to tsv files
+readr::write_tsv(tx.counts, file.path(opt$dir,
+                                      paste0(opt$label, "_counts.tsv")))
+readr::write_tsv(tx.tpm, file.path(opt$dir,
+                                      paste0(opt$label, "_tpms.tsv")))
+
