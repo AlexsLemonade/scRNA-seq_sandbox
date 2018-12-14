@@ -56,8 +56,6 @@ option_list <- list(
 # Parse options
 opt <- parse_args(OptionParser(option_list = option_list))
 
-opt$data <- "patel_data/salmon_quants/patel_data_counts.tsv"
-opt$meta <- "patel_data/GSE57872_meta.tsv"
 #--------------------Import Salmon/tximport gene matrix----------------------#
 # Import gene expression matrix data
 tx.counts <- readr::read_tsv(opt$data) %>% as.data.frame()
@@ -69,8 +67,14 @@ if (!is.na(meta)) {
     stop("If normalizing by batch info, you need to specify the column 
        with batch info with -v option.")
   } else {
-    # Retrieve the batch info based on the columname
-    batch.info <- meta[ , match(opt$var, colnames(meta))]
+    # Retrieve the batch info based on the column name
+    col.index <- match(opt$var, colnames(meta))
+    if (!is.na(col.index)) {
+      # If the column name matches, extract it    
+      batch.info <- meta[ , match(opt$var, colnames(meta))]
+    } else {
+      stop("Column name specified with -v does not match any column in metadata")
+    }
   }
 } else {
   # Set the batch info as all one batch. (Not ideal, but sometimes you don't

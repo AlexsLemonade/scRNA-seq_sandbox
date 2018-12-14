@@ -63,9 +63,6 @@ option_list <- list(
 # Parse options
 opt <- parse_args(OptionParser(option_list = option_list))
 
-opt$dir <- "patel_data/salmon_quants"
-opt$output <- "results"
-opt$label <- "patel_data"
 #------------------------------Import Salmon reads-----------------------------#
 # Get quant files
 quant.files <- list.files(opt$dir, recursive = TRUE, full.names = TRUE,
