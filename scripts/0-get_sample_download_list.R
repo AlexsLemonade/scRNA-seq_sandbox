@@ -72,6 +72,11 @@ opt <- parse_args(OptionParser(option_list = option_list))
 if (is.null(opt$sql)) {
     stop("The path to the GEO's SRAmetadb.sqlite file has not been specified.")
 }
+
+opt$dir <- "patel_data/salmon_quants"
+opt$id <- "SRP042161"
+opt$output <- "results"
+opt$sql  <- "ref_files/SRAmetadb.sqlite"
 #------------------- Connect to NCBI's SRA SQL database------------------------#
 # Get sra path
 srafile <- file.path(opt$sql)

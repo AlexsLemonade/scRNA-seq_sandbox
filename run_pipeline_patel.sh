@@ -73,6 +73,8 @@ do
 done
 
 #-------------------------Obtain summary report of fastqc:---------------------#
+cd ..
+
 Rscript scripts/2-get_fastqc_reports.R \
     -d ${dir}/fastqc_reports \
     -o results
@@ -80,7 +82,11 @@ Rscript scripts/2-get_fastqc_reports.R \
 #-------------Make a gene matrix out of the Salmon quantification data---------#
 Rscript scripts/3-make_gene_matrix.R \
     -d ${dir}/salmon_quants \
-    -o ${dir} \
-    -g ${GSE} \
+    -o results \
     -m 0.5 \
     -l ${dir}
+
+#-------------------------------Get metadata tsv-------------------------------#
+Rscript scripts/4-metadata_setup.R \
+    -g ${GSE} \
+    -o ${dir}

@@ -5,7 +5,7 @@
 # Purpose: running the pre-processing steps for single cell RNA-seq data.
 
 # Change your directory name, GEO ID, and SRP here. Then run the script.
-directory=darmanis_data
+dir=darmanis_data
 GSE=GSE84465
 SRP=SRP079058
 
@@ -73,6 +73,7 @@ do
 done
 
 #-------------------------Obtain summary report of fastqc:---------------------#
+cd ..
 Rscript scripts/2-get_fastqc_reports.R \
     -d ${dir}/fastqc_reports \
     -o results
@@ -81,6 +82,10 @@ Rscript scripts/2-get_fastqc_reports.R \
 Rscript scripts/3-make_gene_matrix.R \
     -d ${dir}/salmon_quants \
     -o ${dir} \
-    -g ${GSE} \
     -m 0.5 \
     -l ${dir}
+
+#-------------------------------Get metadata tsv-------------------------------#
+Rscript scripts/4-metadata_setup.R \
+-g ${GSE} \
+-o ${dir}

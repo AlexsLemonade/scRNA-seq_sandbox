@@ -34,7 +34,7 @@ library(optparse)
 #--------------------------------Set up options--------------------------------#
 option_list <- list(
     make_option(opt_str = c("-d", "--data"), type = "character", default = getwd(),
-                help = "Path to gene matrix in tsv format, gene x sample",
+                help = "Path to counts gene matrix in tsv format, gene x sample",
                 metavar = "character"),
     make_option(opt_str = c("-o", "--output"), type = "character",
                 default = getwd(), help = "Directory where you would like the
@@ -49,7 +49,7 @@ opt <- parse_args(OptionParser(option_list = option_list))
 
 #--------------------Import Salmon/tximport gene matrix----------------------#
 # Import gene expression matrix data
-tx.counts <- readr::read_delim(opt$data)
+tx.counts <- readr::write_tsv(opt$data)
 
 # Mitochondrial genes by their ensembl IDs
 # This list is from here :http://jdblischak.github.io/singleCellSeq/analysis/qc-filter-ipsc.html
@@ -61,7 +61,7 @@ mtgene <- c("ENSG00000198899", "ENSG00000198727", "ENSG00000198888",
 "ENSG00000198840")
 
 # Get the gene symbol names for these genes
-mtgene <- tx.counts$gene[match(mtgene, tx.counts$ensembl)]
+mtgene <- rownames(tx.counts)[match(mtgene, tx.counts$ensembl)]
 
 # Add regex symbols for exact matches
 mtgene <- paste0("^", mtgene, "$")

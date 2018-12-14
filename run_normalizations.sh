@@ -5,7 +5,10 @@
 # Purpose: running the normalization on gene matrices previously made
 # by the run_pipeline.sh scripts
 
-# The three normalization methods: seurat, scnorm, and RUVnormalize
+mkdir normalized_data
+
+# The three normalization methods: seurat, scnorm, and TPM (already made
+# through salmon)
 
 # Process the patel data in the three ways
 Rscript scripts/4a-seurat_normalize.R \
