@@ -16,7 +16,7 @@
 #
 # Rscript scripts/4b-scnorm_normalize.R \
 # -d data/salmon_quants \
-# -m results/GSE84465_meta.tsv
+# -m results/GSE84465_meta.tsv \
 # -v plate.id \
 # -o data \
 # -l "patel"
@@ -55,7 +55,7 @@ option_list <- list(
 
 # Parse options
 opt <- parse_args(OptionParser(option_list = option_list))
-
+opt$dir <- "patel_data"
 #--------------------Import Salmon/tximport gene matrix----------------------#
 # Import gene expression matrix data
 tx.counts <- readr::read_tsv(opt$data) %>% as.data.frame()
@@ -89,6 +89,9 @@ rownames(tx.counts) <- tx.counts$gene
 scnorm <- SCnorm(Data = tx.counts[, -which(colnames(tx.counts) == "gene")],
                  Conditions = batch.info, FilterCellNum = 10, NCores=3)
 
+# Extract the data from the object
+scnorm.data <- results(scnorm)
+
 # Save this scnorm data to tsv file
-readr::write_tsv(scnorm, file = file.path(opt$output,
+readr::write_tsv(scnorm.data, file.path(opt$output,
                                  paste0(opt$label, "_scnorm_normalize.tsv")))
