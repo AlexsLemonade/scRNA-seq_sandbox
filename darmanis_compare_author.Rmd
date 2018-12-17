@@ -1,0 +1,196 @@
+---
+title: "Compare Darmanis Data"
+author: "C. Savonen CCDL for ALSF"
+date: "12/15/2018"
+output: html_document
+---
+Purpose: Compare author processed data, Salmon processed, and HISAT2 processed
+```{r Create ID Conversion Key, include=FALSE}
+# Magrittr pipe
+`%>%` <- dplyr::`%>%`
+
+if (!file.exists(file.path("darmanis_data", "sample_id_key.RDS"))) {
+  # Get geo metadata
+  meta <- read.table(opt$meta, sep = "\t", header = TRUE, 
+                      stringsAsFactors = FALSE)
+  
+  # Get the GSM and SRX ids from the GEO metadata
+  id.key <- data.frame(gsm.ids = meta$geo_accession,
+                       plate.ids = meta$description.1,
+                       srx.ids = stringr::word(meta$relation.1,
+                                               start = 2, sep = "term="))
+  # Import SRA file names
+  sra.files <- read.csv(file.path("results", "SRP079058_SRA.files.csv"))[, -1]
+
+  # Merge both keys into a single id.key dataframe
+  id.key <- merge(id.key, sra.files, by.x = "srx.ids", by.y = "experiment")
+
+  # Save this dataframe for later
+  saveRDS(id.key, file = file.path("darmanis_data", "sample_id_key.RDS"))
+  
+  } else {
+  id.key <- readRDS(file.path("darmanis_data", "sample_id_key.RDS"))
+  }
+```
+
+```{r Set up author data}
+if (!file.exists(file.path("darmanis_data", "author.data.RDS"))) {
+  # Get author normalized data if not downloaded yet
+  if (!(file.exists(file.path("darmanis_data", "GSE84465.csv")))) {
+        download.file("https://www.ncbi.nlm.nih.gov/geo/download/?acc=GSE84465&format=file&file=GSE84465%5FGBM%5FAll%5Fdata%2Ecsv%2Egz",
+              destfile = file.path("darmanis_data", "GSE84465.csv.gz"))
+        # Unzip the file
+        GEOquery::gunzip(file.path("darmanis_data", "GSE84465.csv.gz"))
+  }
+
+  # Import all the different datasets
+  author.data <- read.table(file.path("darmanis_data", "GSE84465.csv"), sep = " ",
+                          stringsAsFactors = FALSE)
+
+  # Make plate id to GSM id key
+  convert.key <- as.list(id.key$gsm.ids)
+  names(convert.key) <- as.character(id.key$plate.ids)
+
+  # Obtain GSM ids using conversion key and make these the column names 
+  colnames(author.data) <- dplyr::recode(gsub("^X", "", colnames(author.data)),
+                                       !!!convert.key)
+
+  # Add genes as their own column
+  author.data <- author.data %>% tibble::rownames_to_column("gene")
+
+  # Save cleaned data
+  saveRDS(author.data, file = file.path("darmanis_data", "author.data.RDS"))
+  } else {
+  author.data <- readRDS(file.path("darmanis_data", "author.data.RDS"))
+  }
+```
+
+```{r Change sample column names to GSM}
+# Make our SRA conversion key 
+convert.key <- as.list(as.character(id.key$gsm.ids))
+names(convert.key) <- as.character(id.key$run)
+
+# Import datasets from their RDS files
+tx.counts <- read.table(file.path("darmanis_data", "salmon_quants", "darmanis_data_counts.tsv"), header = TRUE, stringsAsFactors = FALSE)
+
+# Obtain GSM ids using conversion key and make these the column names 
+colnames(tx.counts) <- dplyr::recode(colnames(tx.counts), !!!convert.key)
+
+# Save objects with the GEO accession IDs
+readr::write_tsv(tx.counts, file.path("darmanis_data","salmon_quants",
+                                      "darmanis_data_counts.tsv"))
+```
+
+```{r Convert to gene symbols}
+tx.counts$gene <- mapIds(org.Hs.eg.db, keys = tx.counts$gene, column = "SYMBOL",
+                keytype = "ENSEMBL")
+```
+
+
+
+```{r Make function compare datasets}
+# This function will plot the distribution of the PC scores looks like and label samples by the different variables' different factor levels
+pc.plot <- function(dat, var){
+  colz <- colors(distinct = TRUE)[runif(length(levels(var)), min = 1,
+                                        max = length(colors(distinct=TRUE)))]
+  plot(dat,pch = 21, bg = colz[var]);
+  legend(x = "topleft", legend = levels(var), fill = colz, cex = 0.8)
+}
+
+compareData <- function (data1 = data1, data2 = data2, label1 = "1", label2 = "2") {
+  # Uses correlation and PCA to compare two datasets
+  #
+  # Args:
+  #   data1: a dataset to compare to data2, must have colnames that are "GSM" 
+  #          and a column labeled "gene" that contains gene ids to match to data2
+  #   data2: a dataset to compare to data1, must have colnames that are "GSM" 
+  #          and a column labeled "gene" that contains gene ids to match to data2
+  #   label1: character string with the label you would like the output to have for data1
+  #   label2: character string with the label you would like the output to have for data2
+  #
+  # Returns:
+  #   PCA of data combined
+  #   Gene quantification correlations of samples that are in both datasets 
+
+  # Only keep columns that match the datasets  
+  data2 <- data2 %>% dplyr::select(dplyr::matches(paste0(colnames(data1), collapse = "|")))  
+  data1 <- data1 %>% dplyr::select(dplyr::matches(paste0(colnames(data2), collapse = "|")))
+  
+  # Join datasets into one
+  combined <- dplyr::inner_join(data1, data2, by = "gene")
+
+  # Get a vector of sample names 
+  samples <- gsub("\\.x$",  "", grep("\\.x$", colnames(combined), value = TRUE))
+
+  # Add respective column names
+  colnames(combined) <- gsub("\\.x$", label1, colnames(combined))
+  colnames(combined) <- gsub("\\.y$", label2, colnames(combined))
+
+  # Make a vector with the dataset labels
+  datasets <- rep(label2, ncol(combined) - 1)
+  datasets[grepl(label1, colnames(combined))[-1]] <- label1
+  datasets <- factor(datasets)
+
+  # Make labels for which data is processed which way
+  pca <- prcomp(t(combined[, -1]))
+
+  # Print out a PCA plot
+  png(file.path("results", paste0("PCA_", label1, "_vs_", label2, ".png")))
+  pc.plot(pca$x, datasets)
+  dev.off()
+  
+  corr.file <- file.path("results", paste0(label1, "_vs_", label2,
+                                           "_sample_correlations"))
+  # Create separate folder for sample correlations 
+  if (!dir.exists(corr.file)) {
+    dir.create(corr.file)
+  }
+  
+  sample.corrs <- vapply(samples, function(sample) {
+    # Get sample data
+    sample.data <- combined %>% dplyr::select(dplyr::contains(sample))
+    
+    # Correlate the two datasets
+    sample.corr <- cor(sample.data[ , 1], sample.data[,2])
+    
+    # Save scatterplot to jpeg
+    png(file.path(corr.file, paste0(sample, "_", label1,"_vs_", label2, ".png")))
+    plot(sample.data,
+        xlab = paste0(label1),
+        ylab = paste0(label2),
+        main = paste0("R = ", round(sample.corr, 3)))
+    dev.off()
+    return(sample.corr)  
+    }, FUN.VALUE = 1)
+
+  # Plot sample correlations on a histogram so we can get an overall picture
+  png(file.path("results", paste0("hist_sample_corrs_", label1,"_vs_", label2,
+                                   ".png")))
+  hist(sample.corrs, xlab = "", main = paste(label1, "vs", label2,
+                                             "Sample Correlations"), breaks = 20)
+  dev.off()
+}
+```
+
+```{r}
+plot(density(as.numeric(tx.counts[4,-1])))
+
+# Gene average histogram
+png("results/Darmanis_gene_density.png")
+plot(density(apply(tx.counts[,-1], 1, mean)), main = "Gene Average Distribution")
+dev.off()
+
+png("results/Darmanis_sample_max_density.png")
+plot(density(apply(tx.counts[,-1], 2, max)), main = "Sample Max Counts Distribution")
+dev.off()
+
+apply(tx.counts[,-1], 2, max)
+
+
+```
+
+
+```{r Compare Data}
+# Run this with the salmon data
+compareData(data1 = tx.counts, data2 =  author.data, label1 = "Darmanis", label2 = "Author_Processed")
+```

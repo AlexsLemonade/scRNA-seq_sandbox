@@ -55,14 +55,16 @@ option_list <- list(
 
 # Parse options
 opt <- parse_args(OptionParser(option_list = option_list))
-opt$dir <- "patel_data"
+opt$data <- "darmanis_data/salmon_quants/darmanis_data_counts.tsv"
+opt$meta <- "darmanis_data/GSE84465_meta.tsv"
+opt$var <- "plate.id.ch1"
 #--------------------Import Salmon/tximport gene matrix----------------------#
 # Import gene expression matrix data
-tx.counts <- readr::read_tsv(opt$data) %>% as.data.frame()
+tx.counts <- read.table(opt$data, header = TRUE, stringsAsFactors = FALSE)
 
 # Read in meta data with batch info if it is given
-if (!is.na(meta)) {
-  meta <- readr::read_tsv(opt$meta)
+if (!is.na(opt$meta)) {
+  meta <-  read.table(opt$meta, sep = "\t", header = TRUE, stringsAsFactors = FALSE)
   if(is.null(opt$var)) { # if no column is specified, stop.
     stop("If normalizing by batch info, you need to specify the column 
        with batch info with -v option.")
@@ -72,6 +74,7 @@ if (!is.na(meta)) {
     if (!is.na(col.index)) {
       # If the column name matches, extract it    
       batch.info <- meta[ , match(opt$var, colnames(meta))]
+      batch.info <- batch.info[match(colnames(tx.counts)[-1],meta$geo_accession)]
     } else {
       stop("Column name specified with -v does not match any column in metadata")
     }

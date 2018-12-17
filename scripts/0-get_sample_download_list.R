@@ -73,8 +73,8 @@ if (is.null(opt$sql)) {
     stop("The path to the GEO's SRAmetadb.sqlite file has not been specified.")
 }
 
-opt$dir <- "patel_data/salmon_quants"
-opt$id <- "SRP042161"
+opt$dir <- "darmanis_data/salmon_quants"
+opt$id <- "SRP079058"
 opt$output <- "results"
 opt$sql  <- "ref_files/SRAmetadb.sqlite"
 #------------------- Connect to NCBI's SRA SQL database------------------------#
@@ -87,7 +87,7 @@ con <- DBI::dbConnect(RSQLite::SQLite(), opt$sql)
 
 # Get a list of the samples associated with the project we are interested in
 files <- listSRAfile(opt$id, con)
-write.csv(files, "SRA.files.csv")
+write.csv(files, file.path(opt$output, paste0(opt$id, "_SRA.files.csv")))
 
 # If we want to restrict the number of samples being processed:
 if (!is.null(opt$number)){
