@@ -173,19 +173,15 @@ compareData <- function (data1 = data1, data2 = data2, label1 = "1", label2 = "2
 ```
 
 ```{r}
-plot(density(as.numeric(tx.counts[4,-1])))
-
 # Gene average histogram
 png("results/Darmanis_gene_density.png")
 plot(density(apply(tx.counts[,-1], 1, mean)), main = "Gene Average Distribution")
 dev.off()
 
-png("results/Darmanis_sample_max_density.png")
-plot(density(apply(tx.counts[,-1], 2, max)), main = "Sample Max Counts Distribution")
+# Plot sample total counts histogram
+png("results/Darmanis_sample_total_counts_density.png")
+plot(density(apply(tx.counts[,-1], 2, sum)), main = "Sample Total Counts Distribution")
 dev.off()
-
-apply(tx.counts[,-1], 2, max)
-
 
 ```
 

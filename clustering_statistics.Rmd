@@ -1,0 +1,35 @@
+---
+title: "Clustering Statistics"
+author: "C. Savonen CCDL for ALSF"
+date: "12/17/2018"
+output: html_document
+---
+
+```{r Set Up }
+source(file.path("scripts", "CZI_functions.R"))
+```
+
+```{r Import Data, include=FALSE}
+# Get the file names of all the normalized files
+normalized.files <- dir("Darmanis_normalized")
+
+# Read in each of the normalization files
+normalized.data <- lapply(normalized.files, function(file) {
+                              readr::read_tsv(file.path("Darmanis_normalized",
+                                                        file))
+                          })
+# Keep the names with it.
+names(normalized.data) <- gsub("\\.tab|Darmanis_", "", normalized.files)
+```
+
+```{r Samples}
+samples <- colnames(normalized.data[[1]])[-1]
+```
+
+```{r Metadata set up}
+meta <- readr::read_tsv(file.path("darmanis_data", "GSE84465_meta.tsv"))
+
+meta <- meta[match(meta$geo_accession)]
+
+cell.types <- meta$`cell type:ch1`
+
