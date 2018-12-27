@@ -7,17 +7,27 @@ output: html_document
 
 ```{r Set Up }
 source(file.path("scripts", "CZI_functions.R"))
+if (!("Rtsne" %in% installed.packages())) {
+   install.packages("Rtsne")
+}
+if (!("NMI" %in% installed.packages())) {
+   install.packages("NMI")
+}
 ```
 
 ```{r Import Data, include=FALSE}
 # Get the file names of all the normalized files
-normalized.files <- dir("Darmanis_normalized")
+normalized.files <- dir("../scRNA-seq_workflow/Darmanis_normalized")
 
 # Read in each of the normalization files
 normalized.data <- lapply(normalized.files, function(file) {
-                              readr::read_tsv(file.path("Darmanis_normalized",
+                              readr::read_tsv(file.path("../scRNA-seq_workflow/Darmanis_normalized",
                                                         file))
                           })
+
+# Keep all the gene lists
+genes <- lapply(normalized.data, function(x) x$Genes)
+
 # Keep the names with it.
 names(normalized.data) <- gsub("\\.tab|Darmanis_", "", normalized.files)
 ```
@@ -27,9 +37,84 @@ samples <- colnames(normalized.data[[1]])[-1]
 ```
 
 ```{r Metadata set up}
+# Read in the data
 meta <- readr::read_tsv(file.path("darmanis_data", "GSE84465_meta.tsv"))
 
-meta <- meta[match(meta$geo_accession)]
+# Keep metadata only for the samples we have
+meta <- meta[match(samples, meta$geo_accession), ]
 
+# Extra cell types info as it's own vector
 cell.types <- meta$`cell type:ch1`
+```
+
+```{r Cluster it}
+tsne <- lapply(normalized.data, function(dat) {
+                        tsne.res <- Rtsne::Rtsne(t(dat[,-1]),
+                                                 check_duplicates = FALSE)
+                        tsne.res <- tsne.res$Y
+                        names(tsne.res) <- samples
+                        return(tsne.res)
+                        })
+```
+
+```{r k means_eval}
+iter <- length(unique(cell.types))
+set.seed(1234)
+
+kmeans.res <- lapply(tsne, function(feature) {
+
+ # convert celltype into numbers
+  celltype_num <- as.numeric(factor(cell.types))
+  sample_id <- seq(1:nrow(feature))
+  
+  # iterative k-means
+  nmi_score_all <- c()
+  ari_score_all <- c()
+  all_cluster <- list()
+  
+  for(i in 1:iter){
+    # set k equal to the number of celltypes in the dataset
+    k <- length(unique(celltype))
+    # perform k means clustering
+    km <- kmeans(feature, k)
+
+    # true clusters
+    orignal_data <- data.frame(sample_id, celltype_num)
+    
+    # predicted clusters
+    cl_data <- data.frame(sample_id, km$cluster)
+    # cacluate NMI and ARI score
+    nmi_score <- NMI::NMI(orignal_data, cl_data)$value
+    ari_score <- mclust::adjustedRandIndex(km$cluster, celltype_num)
+    
+    nmi_score_all <- c(nmi_score_all, nmi_score)
+    ari_score_all <- c(ari_score_all, ari_score)
+  }
+    return(data.frame(nmi = round(mean(nmi_score_all), 2), ari = round(mean(ari_score_all), 2), 
+                    nmi_var = round(sd(nmi_score_all), 2), ari_var = round(sd(ari_score_all), 2)))
+})
+```
+
+```{r}
+results <- unlist(kmeans.res)
+
+barplot()
+
+```
+
+
+```{r silhouette}
+ave_sil(feature = tsne[[1]], celltype = cell.types)
+
+  names(tsne[[1]]) <- samples
+  # convert celltype label into numeric variable
+  cluster <- as.numeric(cell.types)
+  
+  # computer silhouette value for each point in a specific cluster
+  ss <- cluster::silhouette(cluster, dist(tsne[[1]]))
+  
+  # average silhouette value
+  ss.mean <- mean(ss[, 3])
+```
+
 
