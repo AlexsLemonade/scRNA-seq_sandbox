@@ -26,22 +26,26 @@ normalized.data <- lapply(normalized.files, function(file) {
                           })
 
 # Keep all the gene lists
-genes <- lapply(normalized.data, function(x) x$Genes)
+genes <- lapply(normalized.data, function(x) x[,1])
 
 # Keep the names with it.
 names(normalized.data) <- gsub("\\.tab|Darmanis_", "", normalized.files)
 ```
 
-```{r Samples}
-samples <- colnames(normalized.data[[1]])[-1]
-```
-
 ```{r Metadata set up}
 # Read in the data
 meta <- readr::read_tsv(file.path("darmanis_data", "GSE84465_meta.tsv"))
+```
+
+```{r Retrieve cell types for these samples}
+# Get sample names from columns
+samples <- colnames(normalized.data[[1]])[-1]
+
+# Make id key only the samples we have
+id.key <- id.key[match(samples, id.key$gsm.ids),]
 
 # Keep metadata only for the samples we have
-meta <- meta[match(samples, meta$geo_accession), ]
+meta <- meta[match(id.key$gsm.ids, meta$geo_accession), ]
 
 # Extra cell types info as it's own vector
 cell.types <- meta$`cell type:ch1`
@@ -57,13 +61,15 @@ tsne <- lapply(normalized.data, function(dat) {
                         })
 ```
 
-```{r k means_eval}
-iter <- length(unique(cell.types))
+```{r Cluster stats run}
+# Make iteration
+iter <- 10
 set.seed(1234)
 
-kmeans.res <- lapply(tsne, function(feature) {
+# K means calculation 
+all.results <- lapply(tsne, function(feature) {
 
- # convert celltype into numbers
+  # convert celltype into numbers
   celltype_num <- as.numeric(factor(cell.types))
   sample_id <- seq(1:nrow(feature))
   
@@ -74,7 +80,8 @@ kmeans.res <- lapply(tsne, function(feature) {
   
   for(i in 1:iter){
     # set k equal to the number of celltypes in the dataset
-    k <- length(unique(celltype))
+    k <- length(unique(cell.types))
+    
     # perform k means clustering
     km <- kmeans(feature, k)
 
@@ -83,38 +90,51 @@ kmeans.res <- lapply(tsne, function(feature) {
     
     # predicted clusters
     cl_data <- data.frame(sample_id, km$cluster)
-    # cacluate NMI and ARI score
+    
+    # calculate NMI and ARI score
     nmi_score <- NMI::NMI(orignal_data, cl_data)$value
     ari_score <- mclust::adjustedRandIndex(km$cluster, celltype_num)
     
     nmi_score_all <- c(nmi_score_all, nmi_score)
     ari_score_all <- c(ari_score_all, ari_score)
   }
-    return(data.frame(nmi = round(mean(nmi_score_all), 2), ari = round(mean(ari_score_all), 2), 
-                    nmi_var = round(sd(nmi_score_all), 2), ari_var = round(sd(ari_score_all), 2)))
+
+  # Compile all results into a data.frame
+  results <- data.frame(nmi = round(mean(nmi_score_all), 2), 
+             ari = round(mean(ari_score_all), 2), 
+             nmi_var = round(sd(nmi_score_all), 2), 
+             ari_var = round(sd(ari_score_all), 2))
+  return(results)
 })
 ```
 
-```{r}
-results <- unlist(kmeans.res)
+```{r Format data for ggplot2}
+# Transform list into a dataframe:
+results <- unlist(all.results)
+ggplot.data <- data.frame("data" = stringr::word(names(results), 1, sep = "\\."),
+                          "test" = stringr::word(names(results), 2, sep = "\\."),
+                          "mean" = unlist(results))
 
-barplot()
+# Make variance it's own column 
+var <- ggplot.data %>% dplyr::filter(grepl("var", ggplot.data$test)) %>%
+                       dplyr::select(mean)
+
+ggplot.data <- ggplot.data %>% dplyr::filter(!grepl("var", ggplot.data$test)) %>%
+               dplyr::mutate(var = var$mean)
+```
+
+```{r Plot the means and variances}
+ggplot(ggplot.data, aes(data, mean, test, fill = test)) +   
+  geom_bar(position = position_dodge(.9), stat="identity") +
+  geom_errorbar(aes(ymin = mean-var, ymax = mean+var), width = 0.1,
+                position = position_dodge(.9), stat="identity") +
+  ylab("Mean") + 
+  xlab("Normalization Method")
 
 ```
 
-
-```{r silhouette}
-ave_sil(feature = tsne[[1]], celltype = cell.types)
-
-  names(tsne[[1]]) <- samples
-  # convert celltype label into numeric variable
-  cluster <- as.numeric(cell.types)
-  
-  # computer silhouette value for each point in a specific cluster
-  ss <- cluster::silhouette(cluster, dist(tsne[[1]]))
-  
-  # average silhouette value
-  ss.mean <- mean(ss[, 3])
+```{r}
+sessionInfo()
 ```
 
 
