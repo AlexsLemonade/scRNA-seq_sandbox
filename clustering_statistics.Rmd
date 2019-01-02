@@ -4,18 +4,21 @@ author: "C. Savonen CCDL for ALSF"
 date: "12/17/2018"
 output: html_document
 ---
-
-```{r Set Up }
-source(file.path("scripts", "CZI_functions.R"))
+### Purpose: compare normalization methods for a particular dataset
+```{r Get packages if they aren't installed }
+source("CZIA_functions.R")
 if (!("Rtsne" %in% installed.packages())) {
    install.packages("Rtsne")
 }
 if (!("NMI" %in% installed.packages())) {
    install.packages("NMI")
 }
+if (!("caret" %in% installed.packages())) {
+   install.packages("caret")
+}
 ```
 
-```{r Import Data, include=FALSE}
+```{r Import Data}
 # Get the file names of all the normalized files
 normalized.files <- dir("../scRNA-seq_workflow/Darmanis_normalized")
 
@@ -32,7 +35,7 @@ genes <- lapply(normalized.data, function(x) x[,1])
 names(normalized.data) <- gsub("\\.tab|Darmanis_", "", normalized.files)
 ```
 
-```{r Metadata set up}
+```{r Metadata Set Up}
 # Read in the data
 meta <- readr::read_tsv(file.path("darmanis_data", "GSE84465_meta.tsv"))
 ```
@@ -41,17 +44,14 @@ meta <- readr::read_tsv(file.path("darmanis_data", "GSE84465_meta.tsv"))
 # Get sample names from columns
 samples <- colnames(normalized.data[[1]])[-1]
 
-# Make id key only the samples we have
-id.key <- id.key[match(samples, id.key$gsm.ids),]
-
 # Keep metadata only for the samples we have
-meta <- meta[match(id.key$gsm.ids, meta$geo_accession), ]
+meta <- meta[match(samples, meta$geo_accession), ]
 
 # Extra cell types info as it's own vector
 cell.types <- meta$`cell type:ch1`
 ```
 
-```{r Cluster it}
+```{r Make clusters with tsne}
 tsne <- lapply(normalized.data, function(dat) {
                         tsne.res <- Rtsne::Rtsne(t(dat[,-1]),
                                                  check_duplicates = FALSE)
@@ -61,13 +61,13 @@ tsne <- lapply(normalized.data, function(dat) {
                         })
 ```
 
-```{r Cluster stats run}
+```{r kmeans stats}
 # Make iteration
 iter <- 10
 set.seed(1234)
 
 # K means calculation 
-all.results <- lapply(tsne, function(feature) {
+kmeans.results <- lapply(tsne, function(feature) {
 
   # convert celltype into numbers
   celltype_num <- as.numeric(factor(cell.types))
@@ -100,12 +100,65 @@ all.results <- lapply(tsne, function(feature) {
   }
 
   # Compile all results into a data.frame
-  results <- data.frame(nmi = round(mean(nmi_score_all), 2), 
-             ari = round(mean(ari_score_all), 2), 
-             nmi_var = round(sd(nmi_score_all), 2), 
-             ari_var = round(sd(ari_score_all), 2))
+  results <- data.frame(ari = ari_score_all, nmi = nmi_score_all)
   return(results)
 })
+```
+
+```{r KNN eval}
+knn_eval <- function(feature, celltype = cell.types, k = 5){
+  # This function performs knn based evaluation 
+  # Args:
+  #  feature: a data.frame contains projected features (n dimensional space, n = 2, 3 ...), the columns are
+  #    projected features in n dimensional space for a sample (cell), rows are samples
+  #  celltype: vector contains cell type information
+  #  k: cross validation fold
+  # Returns:
+  #  performance metrics and confusion matrix
+  # Make the data into a data.frame:
+  feature <- data.frame("tsne" = feature, cell.types = celltype)
+  
+  # Split observations into groups
+  cv <- cvTools::cvFolds(nrow(feature), K = k, R = 1)
+  
+  # Create empty objects to store the performance information for each iteration
+  perf.eval <- list()
+  confusion.matrix <- 0
+  
+  # Go through this iteration that k times
+  for (i in 1:k) {
+    # Isolate samples for training the model
+    train <- feature[cv$subsets[-which(cv$which == i)], ]
+    
+    # Isolate samples for testing the model
+    test <- feature[cv$subsets[which(cv$which == i)], ]
+    
+    # Perform KNN model fitting
+    knn.fit <- caret::train(cell.types~. , data = train, method = "knn",
+                     trControl = caret::trainControl(method = "cv", number = 3),
+                     preProcess = c("center", "scale"),
+                     tuneLength = 10)
+    
+    # Evaluate the model
+    knn.pred <- predict(knn.fit, newdata = subset(test, select = -c(cell.types)))
+    perf.eval[[i]] <- round(cal_performance(knn.pred, test$cell.types, 3), 2)
+    
+    # Make the results into a matrix
+    matrix <- as.matrix(table(test$cell.types, knn.pred, deparse.level = 0))
+    confusion.matrix <- matrix + confusion.matrix
+  }
+  
+  # Get mean performance of cross validation
+  perf.eval <- dplyr::bind_rows(perf.eval)
+  perf.mean <- as.data.frame(t(colMeans(perf.eval)))
+  acc.sd <- sd(perf.eval$accuracy)
+  perf.mean$acc.sd <- acc.sd
+  
+  return(list(performance = perf.mean, confusion = confusion.matrix))
+}
+
+knn.eval <- lapply(tsne, knn_eval)
+
 ```
 
 ```{r Format data for ggplot2}
@@ -126,7 +179,7 @@ ggplot.data <- ggplot.data %>% dplyr::filter(!grepl("var", ggplot.data$test)) %>
 ```{r Plot the means and variances}
 ggplot(ggplot.data, aes(data, mean, test, fill = test)) +   
   geom_bar(position = position_dodge(.9), stat="identity") +
-  geom_errorbar(aes(ymin = mean-var, ymax = mean+var), width = 0.1,
+  geom_jitter(aes(ymin = mean-var, ymax = mean+var), width = 0.1,
                 position = position_dodge(.9), stat="identity") +
   ylab("Mean") + 
   xlab("Normalization Method")
