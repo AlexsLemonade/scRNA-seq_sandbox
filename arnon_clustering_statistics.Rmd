@@ -1,0 +1,232 @@
+---
+title: "Clustering Statistics"
+author: "C. Savonen CCDL for ALSF"
+date: "12/17/2018"
+output: html_document
+---
+### Purpose: compare normalization methods for a particular dataset
+```{r Get packages if they aren't installed }
+source(file.path("scripts", "CZI_functions.R"))
+if (!("Rtsne" %in% installed.packages())) {
+   install.packages("Rtsne")
+}
+if (!("NMI" %in% installed.packages())) {
+   install.packages("NMI")
+}
+if (!("caret" %in% installed.packages())) {
+   install.packages("caret")
+}
+```
+
+```{r Import Data}
+# Get the file names of all the normalized files
+normalized.files <- dir("../scRNA-seq_workflow/Darmanis_normalized")
+
+# Read in each of the normalization files
+normalized.data <- lapply(normalized.files, function(file) {
+                              readr::read_tsv(file.path("../scRNA-seq_workflow/Darmanis_normalized",
+                                                        file))
+                          })
+
+# Keep all the gene lists
+genes <- lapply(normalized.data, function(x) x[,1])
+
+# Keep the names with it.
+names(normalized.data) <- gsub("\\.tab|Darmanis_", "", normalized.files)
+```
+
+```{r Metadata Set Up}
+# Read in the data
+meta <- readr::read_tsv(file.path("darmanis_data", "GSE84465_meta.tsv"))
+```
+
+```{r Retrieve cell types for these samples}
+# Get sample names from columns
+samples <- colnames(normalized.data[[1]])[-1]
+
+# Keep metadata only for the samples we have
+meta <- meta[match(samples, meta$geo_accession), ]
+
+# Extra cell types info as it's own vector
+cell.types <- meta$`cell type:ch1`
+plate.batch <- meta$`characteristics_ch1.1`
+```
+
+```{r Make clusters with tsne}
+# Run tsne on each dataset and extract
+tsne <- lapply(normalized.data, function(dat) {
+                        tsne.res <- Rtsne::Rtsne(t(dat[,-1]),
+                                                 check_duplicates = FALSE)
+                        tsne.res <- tsne.res$Y
+                        names(tsne.res) <- samples
+                        return(tsne.res)
+                        })
+```
+
+```{r kmeans stats function}
+kmeans_eval <- function(feature, metadata = metadata, iter = 10, seed =1234) {
+  # This function is used to perform iterative k-means clustering based on projected 
+  # features for single cell data and then evaluate the performance according to 
+  # Nomalized mutual information (NMI) and adjusted rand index (ARI)
+  #
+  # Args:
+  #  feature: a data.frame contains projected features (n dimensional space, n = 2, 3 ...), the columns are
+  #    projected features in n dimensional space for a sample (cell), rows are samples
+  #  celltype: vector contains cell type informantion
+  #  iter: number of interation for k-means clustering
+  #  seed: seed for k-means clustering
+  # Returns:
+  #   NMI and ARI results
+  # convert celltype into numbers
+  metadata_num <- as.numeric(factor(metadata))
+  sample_id <- seq(1:nrow(feature))
+  
+  # iterative k-means
+  nmi_score_all <- c()
+  ari_score_all <- c()
+  all_cluster <- list()
+  
+  for(i in 1:iter){
+    # set k equal to the number of celltypes in the dataset
+    k <- length(unique(metadata))
+    
+    # perform k means clustering
+    km <- kmeans(feature, k)
+
+    # true clusters
+    orignal_data <- data.frame(sample_id, metadata_num)
+    
+    # predicted clusters
+    cl_data <- data.frame(sample_id, km$cluster)
+    
+    # calculate NMI and ARI score
+    nmi_score <- NMI::NMI(orignal_data, cl_data)$value
+    ari_score <- mclust::adjustedRandIndex(km$cluster, metadata_num)
+    
+    nmi_score_all <- c(nmi_score_all, nmi_score)
+    ari_score_all <- c(ari_score_all, ari_score)
+  }
+
+  # Compile all results into a data.frame
+  results <- data.frame(ari = ari_score_all, nmi = nmi_score_all)
+  return(results)
+}
+```
+
+```{r KNN eval function}
+knn_eval <- function(feature, metadata = metadata, k = 10){
+  # This function performs knn based evaluation 
+  # Args:
+  #  feature: a data.frame contains projected features (n dimensional space, n = 2, 3 ...), the columns are
+  #    projected features in n dimensional space for a sample (cell), rows are samples
+  #  celltype: vector contains cell type information
+  #  k: cross validation fold
+  # Returns:
+  #  list of accuracy scores for each iteration of KNN
+  # Make the data into a data.frame:
+  feature <- data.frame("tsne" = feature, "metadata" = metadata)
+  
+  # Split observations into groups
+  cv <- cvTools::cvFolds(nrow(feature), K = k, R = 1)
+  
+  # Create empty objects to store the performance information for each iteration
+  perf.eval <- list()
+  confusion.matrix <- 0
+  
+  # Go through this iteration that k times
+  for (i in 1:k) {
+    # Isolate samples for training the model
+    train <- feature[cv$subsets[-which(cv$which == i)], ]
+    
+    # Isolate samples for testing the model
+    test <- feature[cv$subsets[which(cv$which == i)], ]
+    
+    # Perform KNN model fitting
+    knn.fit <- caret::train(metadata~. , data = train, method = "knn",
+                     trControl = caret::trainControl(method = "cv", number = 3),
+                     preProcess = c("center", "scale"),
+                     tuneLength = 10)
+    
+    # Evaluate the model
+    knn.pred <- predict(knn.fit, newdata = subset(test, select = -c(metadata)))
+    perf.eval[[i]] <- round(cal_performance(knn.pred, test$metadata, 3), 2)
+    
+    # Make the results into a matrix
+    matrix <- as.matrix(table(test$metadata, knn.pred, deparse.level = 0))
+    confusion.matrix <- matrix + confusion.matrix
+  }
+  
+  # Get mean performance of cross validation
+  perf.eval <- dplyr::bind_rows(perf.eval)
+  accuracy <- perf.eval$accuracy
+
+  return(data.frame("knn" = accuracy))
+}
+```
+
+```{r Run cell type analyses}
+# Get knn and kmeans results for all tsne's of all datasets
+cell.type.results <- lapply(tsne, function(dataset) {
+                        knn.results <- knn_eval(dataset, metadata = cell.types)
+                        kmeans.results <- kmeans_eval(dataset, metadata = cell.types)
+                            
+                        data.frame(knn.results, kmeans.results)
+                            })
+```
+
+```{r Run batch analyses}
+# Get knn and kmeans results for all tsne's of all datasets
+batch.results <- lapply(tsne, function(dataset) {
+                        knn.results <- knn_eval(dataset, metadata = plate.batch)
+                        kmeans.results <- kmeans_eval(dataset, metadata = plate.batch)
+                            
+                        data.frame(knn.results, kmeans.results)
+                            })
+```
+
+```{r Format data for ggplot2}
+# Get meta info 
+meta <- names(unlist(cell.type.results))
+
+# Transform list into a dataframe:
+cell.type.ggplot <- data.frame("method" = stringr::word(meta, 1, sep = "\\."),
+                          "test" = gsub("[0-9]*$", "", stringr::word(meta, 2, sep = "\\.")),
+                          "iter" = rep(1:10, length(cell.type.results)*3),
+                          "values" = unlist(cell.type.results))
+
+# Get meta info 
+meta <- names(unlist(batch.results))
+
+# Transform list into a dataframe:
+batch.ggplot <- data.frame("method" = stringr::word(meta, 1, sep = "\\."),
+                          "test" = gsub("[0-9]*$", "", stringr::word(meta, 2, sep = "\\.")),
+                          "iter" = rep(1:10, length(batch.results)*3),
+                          "values" = unlist(batch.results))
+```
+
+```{r Plot iteration results}
+# Make the plot
+plot <- ggplot(data = ggplot.data, aes(x = method, y = values, fill = test)) +
+      geom_boxplot(position = position_dodge()) + 
+      xlab("Normalization method") +
+      facet_wrap(~test)
+
+# Save plot to png
+ggsave("cell_type_cluster_results.png", width = 10) 
+
+
+# Make the plot
+plot <- ggplot(data = ggplot.data, aes(x = method, y = values, fill = test)) +
+      geom_boxplot(position = position_dodge()) + 
+      xlab("Normalization method") +
+      facet_wrap(~test)
+
+# Save plot to png
+ggsave("cell_type_cluster_results.png", width = 10)  
+```
+
+```{r}
+sessionInfo()
+```
+
+

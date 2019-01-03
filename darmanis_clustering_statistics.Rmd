@@ -6,7 +6,7 @@ output: html_document
 ---
 ### Purpose: compare normalization methods for a particular dataset
 ```{r Get packages if they aren't installed }
-source("CZI_functions.R")
+source(file.path("scripts", "CZI_functions.R"))
 if (!("Rtsne" %in% installed.packages())) {
    install.packages("Rtsne")
 }
@@ -20,11 +20,11 @@ if (!("caret" %in% installed.packages())) {
 
 ```{r Import Data}
 # Get the file names of all the normalized files
-normalized.files <- dir("../scRNA-seq_workflow/Darmanis_normalized")
+normalized.files <- dir("darmanis_data/normalized_darmanis")
 
 # Read in each of the normalization files
 normalized.data <- lapply(normalized.files, function(file) {
-                              readr::read_tsv(file.path("../scRNA-seq_workflow/Darmanis_normalized",
+                              readr::read_tsv(file.path("darmanis_data/normalized_darmanis",
                                                         file))
                           })
 
