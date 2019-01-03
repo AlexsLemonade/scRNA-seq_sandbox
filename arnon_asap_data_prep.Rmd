@@ -1,0 +1,91 @@
+---
+title: "ASAP_data_prep"
+author: "C. Savonen, CCDL for ALSF"
+date: "12/6/2018"
+output: html_document
+---
+
+## Purpose: Prep data for use in [ASAP online](https://asap.epfl.ch/)
+```{r Import data}
+# Import gene expression matrix data
+data <- read.csv(file.path("arnon_data", "GSE115978_counts.csv"))
+genes <- data$X
+```
+
+### Import metadata
+```{r Set up metadata}
+if (file.exists(file.path("arnon_data", "meta_data.csv"))) {
+# Read in csv if it's been made, if not read in from GEOquery
+  geo.meta <- read.csv(file.path("arnon_data", "meta_data.csv"),
+                       stringsAsFactors = FALSE)
+} else {
+  geo.meta <- GEOquery::getGEO("GSE115978", destdir = "arnon_data")
+  geo.meta <- data.frame(geo.meta[[1]]@phenoData@data)
+  readr::write_csv(geo.meta, file.path("arnon_data", "meta_data.csv"))
+}
+```
+
+### Make sure the samples and the metadata are in the same order.
+```{r Order samples}
+# Put samples in same order 
+geo.meta <- geo.meta[match(colnames(data)[-1], geo.meta$title), ]
+```
+
+### Make batch file for ASAP to correct batches by.
+In this case we will use the plate ids. 
+ASAP wants the first column to be the sample IDs that match your sample data file
+and the second column to be the corresponding batch the sample belongs to.
+```{r Make batch info}
+batch.info <- cbind(geo.meta$geo_accession,
+                    geo.meta$characteristics_ch1.2)
+head(batch.info)
+```
+
+### ASAP doesn't want extra gene columns and only likes round numbers for the counts
+Here we have data have it's genes as it's rownames, so even though we are 
+deleting these columns, the information we need is still there.
+```{r Round numbers}
+# Format the data so ASAP will like it. 
+data <- apply(data[,-1], 2, round)
+rownames(data) <- genes
+head(data[,1:10])
+```
+
+```{r Filter out genes}
+# Identify which cells have at least 1 count
+boolean <- data > 1
+
+# Filter genes that are expressed in 1% of cells
+gene.sum <- apply(boolean, 1, sum)
+data <- data[which(gene.sum > ncol(data)*0.01), ]
+
+# Identify which cells have at least 1 count
+boolean <- data > 1
+
+# Filter samples that express at least 100 genes
+sample.sum <- apply(boolean, 2, sum)
+data <- data[, which(sample.sum > 100) ]
+
+```
+
+### Write data file in the format ASAP will take.
+ASAP wants a typical gene by column gene expression matrix with samples with 
+the column names and the first column being the gene names.
+You can use other forms of separation other than "/t" but will need to specify
+what you have used in a drop down menu on ASAP. 
+```{r Write data file}
+# Write these data to tab delimited text files for use in ASAP
+write.table(data, file.path("arnon_data", "data.asap.txt"), sep = "\t",
+            quote = FALSE)
+```
+
+### Write batch file in same type of format
+```{r Write batch file}
+# Write batch info file for ASAP use
+write.table(batch.info, file.path("arnon_data", "batch.info.txt"), row.names = FALSE, 
+            col.names = FALSE, sep = "\t", quote = FALSE)
+```
+
+```{r}
+sessionInfo()
+```

@@ -1,0 +1,121 @@
+---
+title: "ASAP_data_prep"
+author: "C. Savonen, CCDL for ALSF"
+date: "12/6/2018"
+output: html_document
+---
+
+## Purpose: Prep data for use in [ASAP online](https://asap.epfl.ch/)
+```{r Import data}
+# Magrittr pipe
+`%>%` <- dplyr::`%>%`
+
+# Import gene expression matrix data
+data <- readr::read_tsv(file.path("darmanis_data", "salmon_quants",
+                        "darmanis_data_counts.tsv"))
+# Store gene names separately
+gene <- data$gene
+```
+
+### Import metadata
+```{r Set up metadata}
+if (file.exists(file.path("darmanis_data", "meta_data.csv"))) {
+# Read in csv if it's been made, if not read in from GEOquery
+  geo.meta <- read.csv(file.path("darmanis_data", "meta_data.csv"), 
+                       stringsAsFactors = FALSE)
+} else {
+  geo.meta <- GEOquery::getGEO("GSE84465", destdir = "darmanis_data")
+  geo.meta <- data.frame(geo.meta[[1]]@phenoData@data)
+}
+```
+
+### Make sure the samples and the metadata are in the same order.
+```{r Order samples}
+# Put samples in same order 
+id.key <- readRDS(file.path("darmanis_data", "sample_id_key.RDS"))
+
+# Make a sample conversion key
+convert.key <- as.list(as.character(id.key$gsm.ids))
+names(convert.key) <- as.character(id.key$run)
+
+# Obtain GSM ids using conversion key and make these the column names 
+colnames(data) <- dplyr::recode(colnames(data), !!!convert.key)
+
+# Only keep metadata for samples in the set
+geo.meta <- geo.meta[match(colnames(data)[-1], geo.meta$geo_accession), ]
+```
+
+### Make batch file for ASAP to correct batches by.
+In this case we will use the plate ids. 
+ASAP wants the first column to be the sample IDs that match your sample data file
+and the second column to be the corresponding batch the sample belongs to.
+```{r Make batch info}
+# Make batch info matrix
+batch.info <- cbind(geo.meta$geo_accession, geo.meta$plate.id.ch1)
+
+# Let's exclude batches of "1"
+batch.sum <- summary(as.factor(batch.info[,2]))
+batch.one <- names(batch.sum)[which(batch.sum == 1)]
+
+# Make a regex statement to exclude these batches of one
+regex <- paste0(paste0("^", batch.one, "$"), collapse = "|")
+batch.info <- batch.info[ -grep(regex, batch.info[, 2]), ]
+
+# Exclude these samples from the data
+data <- data %>% dplyr::select(batch.info[,1])
+
+head(batch.info)
+```
+
+### ASAP doesn't want extra gene columns and only likes round numbers for the counts
+Here we have data have it's genes as it's rownames, so even though we are 
+deleting these columns, the information we need is still there.
+```{r Round numbers}
+# ASAP doesn't like decimals, even if they are .000 
+data <- apply(data, 2, round)
+
+# Keep genes as rownames
+rownames(data) <- gene
+
+# See preview of what data looks like
+head(data[,1:10])
+```
+
+```{r Filter out genes}
+# Identify which cells have at least 1 count
+boolean <- data > 1
+
+# Filter genes that are expressed in 1% of cells
+gene.sum <- apply(boolean, 1, sum)
+data <- data[which(gene.sum > ncol(data)*0.01), ]
+
+# Identify which cells have at least 1 count
+boolean <- data > 1
+
+# Filter samples that express at least 100 genes
+sample.sum <- apply(boolean, 2, sum)
+data <- data[, which(sample.sum > 100) ]
+
+```
+
+### Write data file in the format ASAP will take.
+ASAP wants a typical gene by column gene expression matrix with samples with 
+the column names and the first column being the gene names.
+You can use other forms of separation other than "/t" but will need to specify
+what you have used in a drop down menu on ASAP. 
+```{r Write data file}
+# Write these data to tab delimited text files for use in ASAP
+write.table(data, file.path("darmanis_data", "data.asap.txt"), sep = "\t",
+            quote = FALSE)
+```
+
+### Write batch file in same type of format
+```{r Write batch file}
+# Write batch info file for ASAP use
+write.table(batch.info, file.path("darmanis_data", "batch.info.txt"), row.names = FALSE, 
+            col.names = FALSE, sep = "\t", quote = FALSE)
+```
+
+```{r}
+sessionInfo()
+```
