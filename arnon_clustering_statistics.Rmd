@@ -20,11 +20,11 @@ if (!("caret" %in% installed.packages())) {
 
 ```{r Import Data}
 # Get the file names of all the normalized files
-normalized.files <- dir("../scRNA-seq_workflow/Darmanis_normalized")
+normalized.files <- dir("arnon_data/normalized_arnon")
 
 # Read in each of the normalization files
 normalized.data <- lapply(normalized.files, function(file) {
-                              readr::read_tsv(file.path("../scRNA-seq_workflow/Darmanis_normalized",
+                              readr::read_tsv(file.path("arnon_data/normalized_arnon",
                                                         file))
                           })
 
@@ -37,7 +37,7 @@ names(normalized.data) <- gsub("\\.tab|Darmanis_", "", normalized.files)
 
 ```{r Metadata Set Up}
 # Read in the data
-meta <- readr::read_tsv(file.path("darmanis_data", "GSE84465_meta.tsv"))
+meta <- readr::read_csv(file.path("arnon_data", "meta_data.csv"))
 ```
 
 ```{r Retrieve cell types for these samples}
@@ -48,8 +48,8 @@ samples <- colnames(normalized.data[[1]])[-1]
 meta <- meta[match(samples, meta$geo_accession), ]
 
 # Extra cell types info as it's own vector
-cell.types <- meta$`cell type:ch1`
-plate.batch <- meta$`characteristics_ch1.1`
+cell.types <- meta$cell.type.ch1
+plate.batch <- meta$cohort.ch1
 ```
 
 ```{r Make clusters with tsne}
@@ -228,5 +228,3 @@ ggsave("cell_type_cluster_results.png", width = 10)
 ```{r}
 sessionInfo()
 ```
-
-

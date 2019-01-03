@@ -77,6 +77,10 @@ what you have used in a drop down menu on ASAP.
 # Write these data to tab delimited text files for use in ASAP
 write.table(data, file.path("arnon_data", "data.asap.txt"), sep = "\t",
             quote = FALSE)
+
+write.table(data.frame("gene" = rownames(data), data), 
+            file.path("arnon_data", "normalized_arnon", "Arnon_counts.tab"),
+            sep = "\t", quote = FALSE)
 ```
 
 ### Write batch file in same type of format
