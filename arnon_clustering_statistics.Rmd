@@ -63,8 +63,8 @@ plate.batch <- as.factor(meta$cohort.ch1)
 Run tsne clustering for each dataset:
 ```{r Make clusters with tsne}
 # Run tsne on each dataset and extract
-tsne <- lapply(normalized.data, function(dat) {
-                        tsne.res <- Rtsne::Rtsne(t(dat[,-1]),
+tsne <- lapply(normalized.data, function(dataset) {
+                        tsne.res <- Rtsne::Rtsne(t(dataset[,-1]),
                                                  check_duplicates = FALSE)
                         tsne.res <- tsne.res$Y
                         names(tsne.res) <- samples

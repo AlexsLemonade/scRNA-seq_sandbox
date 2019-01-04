@@ -59,8 +59,8 @@ plate.batch <- as.factor(gsub("plate id: ", "", meta$`characteristics_ch1.1`))
 Run tsne clustering for each dataset:
 ```{r Make clusters with tsne}
 # Run tsne on each dataset and extract
-tsne <- lapply(normalized.data, function(dat) {
-                        tsne.res <- Rtsne::Rtsne(t(dat[,-1]),
+tsne <- lapply(normalized.data, function(dataset) {
+                        tsne.res <- Rtsne::Rtsne(t(dataset[,-1]),
                                                  check_duplicates = FALSE)
                         tsne.res <- tsne.res$Y
                         names(tsne.res) <- samples
@@ -73,7 +73,7 @@ Plot all the tsne's for all the datasets with labeling with batch info as well a
 cell type info. 
 ```{r Function for plotting tsne}
 # Make a function for plotting tsne's and using 
-tsne.plot <- function(dat, var, name = "name"){
+TsnePlot <- function(dat, var, name = "name"){
   # This function is to plot tsne data and label it by a variable
   # Args:
   #  dat: a data.frame with two columns of data
@@ -120,7 +120,7 @@ lapply(tsne, function(dataset) {
 Make a function to do kmeans clustering and obtain Normalized Mutual Information
 "nmi"and Adjusted Rand Index "ari" statistics over iterations (default is 10). 
 ```{r kmeans stats function}
-kmeans_eval <- function(feature, metadata = metadata, iter = 10) {
+KmeansEval <- function(feature, metadata = metadata, iter = 10) {
   # This function is used to perform iterative k-means clustering based on projected 
   # features for single cell data and then evaluate the performance according to 
   # Normalized mutual information (NMI) and adjusted rand index (ARI)
@@ -171,7 +171,7 @@ kmeans_eval <- function(feature, metadata = metadata, iter = 10) {
 Make a function to do K nearest neighbor clustering and obtain accuracy scores 
 over iterations (default is 10)
 ```{r KNN eval function}
-knn_eval <- function(feature, metadata = metadata, iter = 10){
+KnnEval <- function(feature, metadata = metadata, iter = 10){
   # This function performs knn based evaluation 
   # Args:
   #  feature: a data.frame contains clustering dimensions
@@ -225,10 +225,14 @@ Run cell type analyses on all the tsne datasets
 ```{r Run cell type analyses}
 # Get knn and kmeans results for all tsne's of all datasets
 cell.type.results <- lapply(tsne, function(dataset) {
-                        knn.results <- knn_eval(dataset, metadata = cell.types)
-                        kmeans.results <- kmeans_eval(dataset, metadata = cell.types)
+                            # Get KNN accuracy results
+                            knn.results <- KnnEval(dataset, metadata = cell.types)
                             
-                        data.frame(knn.results, kmeans.results)
+                            # Get kmeans nmi and ari results
+                            kmeans.results <- KmeansEval(dataset, metadata = cell.types)
+                            
+                            # Put together into one dataframe
+                            data.frame(knn.results, kmeans.results)
                             })
 ```
 
@@ -236,10 +240,10 @@ Run plate batch analyses on all the tsne datasets
 ```{r Run batch analyses}
 # Get knn and kmeans results for all tsne's of all datasets
 batch.results <- lapply(tsne, function(dataset) {
-                        # knn.results <- knn_eval(dataset, metadata = plate.batch)
-                        kmeans.results <- kmeans_eval(dataset, metadata = plate.batch)
+                        # Get KNN accuracy results
+                        kmeans.results <- KmeansEval(dataset, metadata = plate.batch)
                             
-                        # data.frame(knn.results, kmeans.results)
+                        # Make into data frame
                         data.frame(kmeans.results)
 
                             })
@@ -248,7 +252,7 @@ batch.results <- lapply(tsne, function(dataset) {
 Set up a function for formatting the data into ggplot2 and subseuently plot the 
 data
 ```{r Format data for ggplot2}
-plot.results <- function(results.list, name = "results") {
+PlotResults <- function(results.list, name = "results") {
   # This function makes a boxplot of the cluster statistic results 
   # Args:
   #  results.list: a list of dataframes which each column contains a different 
@@ -285,10 +289,10 @@ plot.results <- function(results.list, name = "results") {
 Plot all the statistics on a boxplot
 ```{r Print the plots}
 # Plot the cell type results 
-plot.results(cell.type.results, name = "Cell_type")
+PlotResults(cell.type.results, name = "Cell_type")
 
 # Plot the plate batch results
-plot.results(batch.results, name = "Plate_batch")
+PlotResults(batch.results, name = "Plate_batch")
 ```
 
 Session info: 
