@@ -108,10 +108,10 @@ what you have used in a drop down menu on ASAP.
 data <- data.frame("gene" = rownames(data), data)
 
 # Write these data to tab delimited text files for use in ASAP
-readr::write_delim(data, file.path("darmanis_data", "data.asap.txt"))
+readr::write_delim(data, file.path("darmanis_data", "asap_format.txt"))
 
 # Write a copy of the counts in the normalized data file
-readr::write_tsv(data, file.path("darmanis_data", "normalized_darmanis", "Darmanis_counts.tab"))
+readr::write_tsv(data, file.path("darmanis_data", "normalized_darmanis", "darmanis_counts.tab"))
 
 ```
 

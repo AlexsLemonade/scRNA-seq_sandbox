@@ -5,7 +5,7 @@ date: "12/17/2018"
 output: html_document
 ---
 ### Purpose: compare normalization methods for a particular dataset
-```{r Get packages if they aren't installed }
+```{r Get packages }
 source(file.path("scripts", "CZI_functions.R"))
 if (!("Rtsne" %in% installed.packages())) {
    install.packages("Rtsne")
@@ -32,7 +32,7 @@ normalized.data <- lapply(normalized.files, function(file) {
 genes <- lapply(normalized.data, function(x) x[,1])
 
 # Keep the names with it.
-names(normalized.data) <- gsub("\\.tab|Darmanis_", "", normalized.files)
+names(normalized.data) <- gsub("\\.tab|darmanis_", "", normalized.files)
 ```
 
 ```{r Metadata Set Up}
@@ -48,8 +48,8 @@ samples <- colnames(normalized.data[[1]])[-1]
 meta <- meta[match(samples, meta$geo_accession), ]
 
 # Extra cell types info as it's own vector
-cell.types <- meta$`cell type:ch1`
-plate.batch <- meta$`characteristics_ch1.1`
+cell.types <- as.factor(meta$`cell type:ch1`)
+plate.batch <- as.factor(gsub("plate id: ", "", meta$`characteristics_ch1.1`))
 ```
 
 ```{r Make clusters with tsne}
@@ -59,8 +59,51 @@ tsne <- lapply(normalized.data, function(dat) {
                                                  check_duplicates = FALSE)
                         tsne.res <- tsne.res$Y
                         names(tsne.res) <- samples
+                        
                         return(tsne.res)
                         })
+```
+
+```{r Plot the tsne}
+# Make a function for plotting tsne's and using 
+tsne.plot <- function(dat, var, name = "name"){
+  # This function is to plot tsne data and label it by a variable
+  # Args:
+  #  dat: a data.frame with two columns of data
+  #  var: vector contains metadata labels
+  #  name: a character string for the plot title and for to save as png
+  # Returns:
+  #   png and plot in Rmd of the provided data with labels of the metadata provided
+  # convert celltype into numbers
+  colz <- colors(distinct = TRUE)[runif(length(levels(var)), min = 1,
+                                        max = length(colors(distinct=TRUE)))]
+  plot(dat,pch = 21, bg = colz[var], main = name);
+  legend(x = "bottomleft", legend = levels(var), fill = colz, cex = 0.6)
+}
+
+# Plot em with cell type and plate batch labels
+lapply(tsne, function(dataset) {
+      # Get normalization method
+      set.name <- names(tsne)[parent.frame()$i[]]
+      
+      # Make plots for cell type and plate batch 
+      cell.type.plot <- tsne.plot(dataset, cell.types, name = set.name)
+      plate.batch.plot <- tsne.plot(dataset, plate.batch, name = set.name)
+    
+      # Save the plots to pngs
+      png(paste0("tsne_", set.name, "cell_type.png"))
+      cell.type.plot
+      dev.off()
+      
+      png(paste0("tsne_", set.name, "plate_batch.png"))
+      plate.batch.plot
+      dev.off()
+      
+      # Print out the plots in the Rmd
+      cell.type.plot
+      plate.batch.plot
+})
+
 ```
 
 ```{r kmeans stats function}
@@ -177,52 +220,56 @@ cell.type.results <- lapply(tsne, function(dataset) {
 ```{r Run batch analyses}
 # Get knn and kmeans results for all tsne's of all datasets
 batch.results <- lapply(tsne, function(dataset) {
-                        knn.results <- knn_eval(dataset, metadata = plate.batch)
+                        # knn.results <- knn_eval(dataset, metadata = plate.batch)
                         kmeans.results <- kmeans_eval(dataset, metadata = plate.batch)
                             
-                        data.frame(knn.results, kmeans.results)
+                        # data.frame(knn.results, kmeans.results)
+                        data.frame(kmeans.results)
+
                             })
 ```
 
 ```{r Format data for ggplot2}
-# Get meta info 
-meta <- names(unlist(cell.type.results))
+plot.results <- function(results.list, name = "results") {
+  # This function makes a boxplot of the cluster statistic results 
+  # Args:
+  #  results.list: a list of dataframes which each column contains a different 
+  #                statistic for 10 iterations
+  #  name: name to use for the png to be saved and the plot title 
+  # Returns: boxplots of the normalization method cluster statistics. Prints the
+  #          plots and save the plot as a png
+  # Get meta info 
+  meta <- names(unlist(results.list))
 
-# Transform list into a dataframe:
-cell.type.ggplot <- data.frame("method" = stringr::word(meta, 1, sep = "\\."),
-                          "test" = gsub("[0-9]*$", "", stringr::word(meta, 2, sep = "\\.")),
-                          "iter" = rep(1:10, length(cell.type.results)*3),
-                          "values" = unlist(cell.type.results))
+  # Transform list into a dataframe:
+  ggplot.df <- data.frame("method" = stringr::word(meta, 1, sep = "\\."),
+                          "test" = gsub("[0-9]*$", "", 
+                                               stringr::word(meta, 2, sep = "\\.")),
+                          "iter" = rep(1:nrow(results.list[[1]]),
+                                       length(results.list)*ncol(results.list[[1]])),
+                          "values" = unlist(results.list))
+  
+  # Make the plot
+  plot <- ggplot(data = ggplot.df, aes(x = method, y = values, fill = test)) +
+          geom_boxplot(position = position_dodge()) + 
+          xlab("Normalization method") +
+          ggtitle(name) +
+          facet_wrap(~test)
 
-# Get meta info 
-meta <- names(unlist(batch.results))
-
-# Transform list into a dataframe:
-batch.ggplot <- data.frame("method" = stringr::word(meta, 1, sep = "\\."),
-                          "test" = gsub("[0-9]*$", "", stringr::word(meta, 2, sep = "\\.")),
-                          "iter" = rep(1:10, length(batch.results)*3),
-                          "values" = unlist(batch.results))
+  # Save plot to png
+  ggsave(paste0(name, "cluster_results.png"), width = 10) 
+  
+  # Print plot
+  plot
+}
 ```
 
-```{r Plot iteration results}
-# Make the plot
-plot <- ggplot(data = ggplot.data, aes(x = method, y = values, fill = test)) +
-      geom_boxplot(position = position_dodge()) + 
-      xlab("Normalization method") +
-      facet_wrap(~test)
+```{r Print the plots}
+# Plot the cell type results 
+plot.results(cell.type.results, name = "Cell_type")
 
-# Save plot to png
-ggsave("cell_type_cluster_results.png", width = 10) 
-
-
-# Make the plot
-plot <- ggplot(data = ggplot.data, aes(x = method, y = values, fill = test)) +
-      geom_boxplot(position = position_dodge()) + 
-      xlab("Normalization method") +
-      facet_wrap(~test)
-
-# Save plot to png
-ggsave("cell_type_cluster_results.png", width = 10)  
+# Plot the plate batch results
+plot.results(batch.results, name = "Plate_batch")
 ```
 
 ```{r}
