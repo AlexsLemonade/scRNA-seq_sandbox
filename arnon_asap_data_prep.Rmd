@@ -74,20 +74,22 @@ the column names and the first column being the gene names.
 You can use other forms of separation other than "/t" but will need to specify
 what you have used in a drop down menu on ASAP. 
 ```{r Write data file}
-# Write these data to tab delimited text files for use in ASAP
-write.table(data, file.path("arnon_data", "data.asap.txt"), sep = "\t",
-            quote = FALSE)
+# Need the genes to be its own column
+data <- data.frame("gene" = rownames(data), data)
 
-write.table(data.frame("gene" = rownames(data), data), 
-            file.path("arnon_data", "normalized_arnon", "Arnon_counts.tab"),
-            sep = "\t", quote = FALSE)
+# Write these data to tab delimited text files for use in ASAP
+readr::write_delim(data, file.path("arnon_data", "data.asap.txt"))
+
+# Write a copy of the counts in the normalized data file
+readr::write_tsv(data, file.path("arnon_data", "normalized_arnon", "Arnon_counts.tab"))
+
 ```
 
 ### Write batch file in same type of format
 ```{r Write batch file}
 # Write batch info file for ASAP use
-write.table(batch.info, file.path("arnon_data", "batch.info.txt"), row.names = FALSE, 
-            col.names = FALSE, sep = "\t", quote = FALSE)
+readr::write_delim(data.frame(batch.info), file.path("arnon_data", "batch.info.txt"))
+```
 ```
 
 ```{r}
