@@ -82,6 +82,8 @@ rownames(data) <- gene
 head(data[,1:10])
 ```
 
+Filter out genes that don't have at least one count in 1% of cells and filter out 
+samples that don't express at least 100 genes.
 ```{r Filter out genes}
 # Identify which cells have at least 1 count
 boolean <- data > 1
@@ -123,6 +125,7 @@ readr::write_delim(data.frame(batch.info),
                    file.path("darmanis_data", "batch.info.txt"))
 ```
 
+Session info:
 ```{r}
 sessionInfo()
 ```

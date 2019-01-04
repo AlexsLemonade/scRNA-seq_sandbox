@@ -275,7 +275,7 @@ plot.results <- function(results.list, name = "results") {
           facet_wrap(~test)
 
   # Save plot to png
-  ggsave(paste0(name, "cluster_results.png"), width = 10) 
+  ggsave(paste0(name, "_cluster_results.png"), width = 10) 
   
   # Print plot
   plot
