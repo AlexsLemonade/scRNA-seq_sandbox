@@ -81,14 +81,16 @@ data <- data.frame("gene" = rownames(data), data)
 readr::write_delim(data, file.path("arnon_data", "asap_format.txt"))
 
 # Write a copy of the counts in the normalized data file
-readr::write_tsv(data, file.path("arnon_data", "normalized_arnon", "arnon_counts.tab"))
+readr::write_tsv(data, file.path("arnon_data", "normalized_arnon", 
+                                 "arnon_counts.tab"))
 
 ```
 
 ### Write batch file in same type of format
 ```{r Write batch file}
 # Write batch info file for ASAP use
-readr::write_delim(data.frame(batch.info), file.path("arnon_data", "batch.info.txt"))
+readr::write_delim(data.frame(batch.info), file.path("arnon_data",
+                                                     "batch.info.txt"))
 ```
 ```
 

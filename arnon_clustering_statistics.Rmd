@@ -4,22 +4,27 @@ author: "C. Savonen CCDL for ALSF"
 date: "12/17/2018"
 output: html_document
 ---
-### Purpose: compare normalization methods for a particular dataset
+### Purpose: compare normalization methods for a Arnon et al dataset
+
+Install necessary packages: 
 ```{r Get packages }
+# Load in functions
 source(file.path("scripts", "CZI_functions.R"))
 
-if (!("Rtsne" %in% installed.packages())) {
-   install.packages("Rtsne")
-}
-if (!("NMI" %in% installed.packages())) {
-   install.packages("NMI")
-}
-if (!("caret" %in% installed.packages())) {
-   install.packages("caret")
-}
+# These are the necessary packages
+packages <- c("Rtsne", "NMI", "caret")
+
+# Check if these packages are installed and install them if they aren't
+lapply(packages, function(package) {
+  if (!(package %in% installed.packages())) {
+    install.packages(package)
+  }
+})
 ```
 
-```{r Import Data}
+Import data that was previously obtained from submitting counts that were formatted
+by `arnon_asap_data_prep.Rmd` to [ASAP](https://asap.epfl.ch/)
+```{r Import data}
 # Get the file names of all the normalized files
 normalized.files <- dir("arnon_data/normalized_arnon")
 
@@ -36,12 +41,14 @@ genes <- lapply(normalized.data, function(x) x[,1])
 names(normalized.data) <- gsub("\\.tab|arnon_", "", normalized.files)
 ```
 
-```{r Metadata Set Up}
+Import the metadata: 
+```{r Metadata set up}
 # Read in the data
 meta <- readr::read_csv(file.path("arnon_data", "meta_data.csv"))
 ```
 
-```{r Retrieve cell types for these samples}
+Retrieve cell type and plate batch for these samples:
+```{r Retrieve cell type and plate batch for these samples}
 # Get sample names from columns
 samples <- colnames(normalized.data[[1]])[-1]
 
@@ -53,6 +60,7 @@ cell.types <- as.factor(meta$cell.type.ch1)
 plate.batch <- as.factor(meta$cohort.ch1)
 ```
 
+Run tsne clustering for each dataset:
 ```{r Make clusters with tsne}
 # Run tsne on each dataset and extract
 tsne <- lapply(normalized.data, function(dat) {
@@ -64,15 +72,30 @@ tsne <- lapply(normalized.data, function(dat) {
                         })
 ```
 
-```{r Plot the tsnes}
+Plot all the tsne's for all the datasets with labeling with batch info as well as 
+cell type info. 
+```{r Make function to plot tsne}
+# Make a function to plot the tsne datasets
 tsne.plot <- function(dat, var, name = "name"){
+  # This function is to plot tsne data and label it by a variable
+  # Args:
+  #  dat: a data.frame with two columns of data
+  #  var: vector contains metadata labels
+  #  name: a character string for the plot title and for to save as png
+  # Returns:
+  #   png and plot in Rmd of the provided data with labels of the metadata provided
+  # convert celltype into numbers
   colz <- colors(distinct = TRUE)[runif(length(levels(var)), min = 1,
-                                        max = length(colors(distinct=TRUE)))]
-  plot(dat,pch = 21, bg = colz[var], main = name);
+                                        max = length(colors(distinct = TRUE)))]
+  plot(dat, pch = 21, bg = colz[var], main = name, ylab = "tsne dim 2",
+       xlab = "tsne dim 1");
   legend(x = "bottomleft", legend = levels(var), fill = colz, cex = 0.6)
 }
+```
 
-# Plot em with cell type and plate batch labels
+Plot all the tsnes
+```{r Plot the tsne}
+# Plot each dataset with cell type and plate batch labels
 lapply(tsne, function(dataset) {
       # Get normalization method
       set.name <- names(tsne)[parent.frame()$i[]]
@@ -97,21 +120,22 @@ lapply(tsne, function(dataset) {
 
 ```
 
+Make a function to do kmeans clustering and obtain Normalized Mutual Information
+"nmi"and Adjusted Rand Index "ari" statistics over 10 iterations. 
 ```{r kmeans stats function}
-kmeans_eval <- function(feature, metadata = metadata, iter = 10, seed =1234) {
+kmeans_eval <- function(feature, metadata = metadata, iter = 10) {
   # This function is used to perform iterative k-means clustering based on projected 
   # features for single cell data and then evaluate the performance according to 
-  # Nomalized mutual information (NMI) and adjusted rand index (ARI)
+  # Normalized mutual information (NMI) and adjusted rand index (ARI)
   #
   # Args:
-  #  feature: a data.frame contains projected features (n dimensional space, n = 2, 3 ...), the columns are
-  #    projected features in n dimensional space for a sample (cell), rows are samples
-  #  celltype: vector contains cell type informantion
+  #  feature: a data.frame contains clustering dimensions
+  #  metadata: vector contains cell type or other metadata information
   #  iter: number of interation for k-means clustering
-  #  seed: seed for k-means clustering
   # Returns:
   #   NMI and ARI results
-  # convert celltype into numbers
+  #   
+  # Convert celltype into numbers
   metadata_num <- as.numeric(factor(metadata))
   sample_id <- seq(1:nrow(feature))
   
@@ -147,29 +171,30 @@ kmeans_eval <- function(feature, metadata = metadata, iter = 10, seed =1234) {
 }
 ```
 
+Make a function to do K nearest neighbor clustering and obtain accuracy scores 
+over iterations (default is 10)
 ```{r KNN eval function}
-knn_eval <- function(feature, metadata = metadata, k = 10){
+knn_eval <- function(feature, metadata = metadata, iter = 10){
   # This function performs knn based evaluation 
   # Args:
-  #  feature: a data.frame contains projected features (n dimensional space,
-  #           n = 2, 3 ...), the columns are
-  #    projected features in n dimensional space for a sample (cell), rows are samples
-  #  celltype: vector contains cell type information
-  #  k: cross validation fold
+  #  feature: a data.frame contains clustering dimensions
+  #  metadata: vector contains cell type or other metadata information  
+  #  iter: number of interation for knn clustering
   # Returns:
   #  list of accuracy scores for each iteration of KNN
+  
   # Make the data into a data.frame:
   feature <- data.frame("tsne" = feature, "metadata" = metadata)
   
   # Split observations into groups
-  cv <- cvTools::cvFolds(nrow(feature), K = k, R = 1)
+  cv <- cvTools::cvFolds(nrow(feature), K = iter, R = 1)
   
   # Create empty objects to store the performance information for each iteration
   perf.eval <- list()
   confusion.matrix <- 0
   
   # Go through this iteration that k times
-  for (i in 1:k) {
+  for (i in 1:iter) {
     # Isolate samples for training the model
     train <- feature[cv$subsets[-which(cv$which == i)], ]
     
@@ -199,6 +224,7 @@ knn_eval <- function(feature, metadata = metadata, k = 10){
 }
 ```
 
+Run cell type analyses on all the tsne datasets
 ```{r Run cell type analyses}
 # Get knn and kmeans results for all tsne's of all datasets
 cell.type.results <- lapply(tsne, function(dataset) {
@@ -211,6 +237,7 @@ cell.type.results <- lapply(tsne, function(dataset) {
                             })
 ```
 
+Run plate batch analyses on all the tsne datasets
 ```{r Run batch analyses}
 # Get knn and kmeans results for all tsne's of all datasets
 batch.results <- lapply(tsne, function(dataset) {
@@ -224,6 +251,8 @@ batch.results <- lapply(tsne, function(dataset) {
                         })
 ```
 
+Set up a function for formatting the data into ggplot2 and subseuently plot the 
+data
 ```{r Format data for ggplot2}
 plot.results <- function(results.list, name = "results") {
   # This function makes a boxplot of the cluster statistic results 
@@ -258,9 +287,16 @@ plot.results <- function(results.list, name = "results") {
 }
 ```
 
+Plot all the statistics on a boxplot
 ```{r Print the plots}
 # Plot the cell type results 
 plot.results(cell.type.results, name = "Cell_type")
 
 # Plot the plate batch results
 plot.results(batch.results, name = "Plate_batch")
+```
+
+Session info: 
+```{r}
+sessionInfo()
+```

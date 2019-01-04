@@ -64,6 +64,7 @@ batch.info <- batch.info[ -grep(regex, batch.info[, 2]), ]
 # Exclude these samples from the data
 data <- data %>% dplyr::select(batch.info[,1])
 
+# Look at a preview of what this looks like
 head(batch.info)
 ```
 
@@ -95,7 +96,6 @@ boolean <- data > 1
 # Filter samples that express at least 100 genes
 sample.sum <- apply(boolean, 2, sum)
 data <- data[, which(sample.sum > 100) ]
-
 ```
 
 ### Write data file in the format ASAP will take.
@@ -111,14 +111,16 @@ data <- data.frame("gene" = rownames(data), data)
 readr::write_delim(data, file.path("darmanis_data", "asap_format.txt"))
 
 # Write a copy of the counts in the normalized data file
-readr::write_tsv(data, file.path("darmanis_data", "normalized_darmanis", "darmanis_counts.tab"))
+readr::write_tsv(data, file.path("darmanis_data", "normalized_darmanis",
+                                 "darmanis_counts.tab"))
 
 ```
 
 ### Write batch file in same type of format
 ```{r Write batch file}
 # Write batch info file for ASAP use
-readr::write_delim(data.frame(batch.info), file.path("darmanis_data", "batch.info.txt"))
+readr::write_delim(data.frame(batch.info), 
+                   file.path("darmanis_data", "batch.info.txt"))
 ```
 
 ```{r}
