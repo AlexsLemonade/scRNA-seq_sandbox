@@ -2,11 +2,13 @@
 .RData
 .Rhistory
 .DS_Store
+GEOmetadb.sqlite
 
 
 # Ignore data, there’s too much of it
 patel_data
 darmanis_data
+arnon_data
 docker
 results
 ref_files
