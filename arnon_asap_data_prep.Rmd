@@ -45,7 +45,7 @@ batch.info <- cbind(geo.meta$geo_accession,
 head(batch.info)
 ```
 
-### ASAP doesn't want extra gene columns and only likes round numbers for the counts
+### ASAP only likes round numbers for the counts
 Here we have data have it's genes as it's rownames, so even though we are 
 deleting these columns, the information we need is still there.
 Filter out genes that don't have at least one count in 1% of cells and filter out 
