@@ -2,8 +2,8 @@
 # 2018
 # Make functions to use for comparing normalization methods using clustering 
 
-TsnePlot <- function(dat, metadata, name = "name"){
-  # This function is to plot tsne data and label it by a given variable
+ClusterPlot <- function(dat, metadata, name = "name"){
+  # This function is to plot cluster data and label it by a given variable
   # Args:
   #  dat: a data.frame with two columns of data
   #  var: vector contains metadata labels
