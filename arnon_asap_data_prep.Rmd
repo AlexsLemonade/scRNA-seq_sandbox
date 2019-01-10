@@ -49,7 +49,7 @@ Filter out genes that don't have at least one count in 1% of cells and filter ou
 samples that don't express at least 100 genes. This function assumes the first 
 column holds the genes.
 ```{r Filter out genes}
-data <- AsapFilter(data, min_counts = 1, perc_genes = 0.01, num_genes = 100)
+prepped.data <- AsapFilter(data, min_counts = 1, perc_genes = 0.01, num_genes = 100)
 ```
 
 ### Write data file in the format ASAP will take.
@@ -58,13 +58,9 @@ the column names and the first column being the gene names.
 You can use other forms of separation other than "/t" but will need to specify
 what you have used in a drop down menu on ASAP. 
 ```{r Write data file}
-# Write these data to tab delimited text files for use in ASAP
-readr::write_tsv(data, file.path("arnon_data", "asap_format.txt"))
-
 # Write a copy of the counts in the normalized data file
-readr::write_tsv(data, file.path("arnon_data", "normalized_arnon", 
-                                 "arnon_counts.tab"))
-
+readr::write_tsv(prepped.data, file.path("arnon_data", "normalized_arnon", 
+                                         "arnon_counts.tab"))
 ```
 
 ### Write batch file in same type of format
