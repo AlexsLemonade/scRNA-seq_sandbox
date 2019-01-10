@@ -49,7 +49,8 @@ Filter out genes that don't have at least one count in 1% of cells and filter ou
 samples that don't express at least 100 genes. This function assumes the first 
 column holds the genes.
 ```{r Filter out genes}
-prepped.data <- AsapFilter(data, min_counts = 1, perc_genes = 0.01, num_genes = 100)
+prepped.data <- AsapFilter(data, min_counts = 1, perc_genes = 0.01,
+                           num_genes = 100)
 ```
 
 ### Write data file in the format ASAP will take.
