@@ -1,5 +1,5 @@
 ---
-title: "ASAP_data_prep"
+title: "Arnon_ASAP_data_prep"
 author: "C. Savonen, CCDL for ALSF"
 date: "12/6/2018"
 output: html_document
@@ -67,8 +67,8 @@ readr::write_tsv(prepped.data, file.path("arnon_data", "normalized_arnon",
 ### Write batch file in same type of format
 ```{r Write batch file}
 # Write batch info file for ASAP use
-readr::write_delim(data.frame(batch.info), file.path("arnon_data",
-                                                     "batch.info.txt"))
+readr::write_tsv(data.frame(batch.info), file.path("arnon_data",
+                                                   "batch.info.txt"))
 ```
 
 Session info: 

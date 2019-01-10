@@ -1,5 +1,5 @@
 ---
-title: "ASAP_data_prep"
+title: "Darmanis_ASAP_data_prep"
 author: "C. Savonen, CCDL for ALSF"
 date: "12/6/2018"
 output: html_document
@@ -60,13 +60,16 @@ prepped.data <- AsapFilter(data, min_counts = 1, perc_genes = 0.01,
 ### Make batch file for ASAP to correct batches by.
 In this case we will use the plate ids. 
 ASAP wants the first column to be the sample IDs that match your sample data file
-and the second column to be the corresponding batch the sample belongs to.
+and the second column to be the corresponding batch the sample belongs to. 
+I am excluding small batches here because they are difficult/impossible to evaluate 
+for the purposes of clustering evaluations.
+Here I excluded samples smaller than or equal to 2.
 ```{r Make batch info}
 # Make batch info matrix
 batch.info <- cbind(geo.meta$geo_accession, geo.meta$plate.id.ch1)
 
 # Let's exclude batches of 2 or less
-batch.sum <- summary(as.factor(batch.info[,2]))
+batch.sum <- summary(as.factor(batch.info[, 2]))
 batch.small <- names(batch.sum)[which(batch.sum <= 2)]
 
 # Make a regex statement to exclude these batches of one
@@ -74,7 +77,7 @@ regex <- paste0(paste0("^", batch.small, "$"), collapse = "|")
 batch.info <- batch.info[ -grep(regex, batch.info[, 2]), ]
 
 # Exclude these samples from the data
-prepped.data <- prepped.data %>% dplyr::select(batch.info[,1])
+prepped.data <- prepped.data %>% dplyr::select(batch.info[, 1])
 
 # Look at a preview of what this looks like
 head(batch.info)
@@ -94,8 +97,8 @@ readr::write_tsv(prepped.data, file.path("darmanis_data", "normalized_darmanis",
 ### Write batch file in same type of format
 ```{r Write batch file}
 # Write batch info file for ASAP use
-readr::write_delim(data.frame(batch.info), 
-                   file.path("darmanis_data", "batch.info.txt"))
+readr::write_tsv(data.frame(batch.info), 
+                 file.path("darmanis_data", "batch.info.txt"))
 ```
 
 Session info:
