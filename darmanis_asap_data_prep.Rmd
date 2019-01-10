@@ -17,8 +17,6 @@ source(file.path("scripts", "asap_prep_functions.R"))
 # Import gene expression matrix data
 data <- readr::read_tsv(file.path("darmanis_data", "salmon_quants",
                                   "darmanis_data_counts.tsv"))
-# Store gene names separately
-gene <- data$gene
 ```
 
 ### Import metadata
@@ -73,12 +71,11 @@ head(batch.info)
 ```
 
 ### ASAP only likes round numbers for the counts
-Here we have data have it's genes as it's rownames, so even though we are 
-deleting these columns, the information we need is still there.
 Filter out genes that don't have at least one count in 1% of cells and filter out 
-samples that don't express at least 100 genes.
+samples that don't express at least 100 genes. This function assumes the first column
+holds the genes
 ```{r Filter out genes}
-data <- AsapFilter(data, genes, min_counts = 1, perc_genes = 0.01, num_genes = 100)
+data <- AsapFilter(data, min_counts = 1, perc_genes = 0.01, num_genes = 100)
 ```
 
 ### Write data file in the format ASAP will take.
@@ -93,7 +90,6 @@ readr::write_delim(data, file.path("darmanis_data", "asap_format.txt"))
 # Write a copy of the counts in the normalized data file
 readr::write_tsv(data, file.path("darmanis_data", "normalized_darmanis",
                                  "darmanis_counts.tab"))
-
 ```
 
 ### Write batch file in same type of format
