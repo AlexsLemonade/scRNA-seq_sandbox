@@ -24,7 +24,7 @@ AsapFilter <- function(data, genes, min_counts = 1, perc_genes = 0.01, num_genes
   gene <- data[, 1]
   
   # Get rid of decimals (even if they are .000, ASAP doesn't like them)
-  data <- apply(data[,-1], 2, round)
+  data <- apply(data[, -1], 2, round)
 
   # Filter genes that are expressed in 1% of cells
   gene.sum <- apply(data >= min_counts, 1, sum)
