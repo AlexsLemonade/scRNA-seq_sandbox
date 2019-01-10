@@ -26,18 +26,12 @@ AsapFilter <- function(data, genes, min_counts = 1, perc_genes = 0.01, num_genes
   # Get rid of decimals (even if they are .000, ASAP doesn't like them)
   data <- apply(data[,-1], 2, round)
 
-  # Identify which cells have at least 1 count
-  detected <- data >= min_counts
-
   # Filter genes that are expressed in 1% of cells
-  gene.sum <- apply(detected, 1, sum)
+  gene.sum <- apply(data >= min_counts, 1, sum)
   data <- data[which(gene.sum > ncol(data)*perc_genes), ]
 
-  # Identify which cells have at least 1 count
-  detected  <- data >= min_counts
-
   # Filter samples that express at least 100 genes
-  sample.sum <- apply(detected, 2, sum)
+  sample.sum <- apply(data >= min_counts, 2, sum)
   data <- data[, which(sample.sum > num_genes) ]
 
   # Need the genes to be its own column
