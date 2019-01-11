@@ -192,7 +192,7 @@ ggplot2::ggsave(plot = celltype.plot, "arnon_cell_type_plots.png",
                 width = 10)
 
 # Print plot
-plot
+celltype.plot
 ```
 
 Plot all the batch statistics on a boxplot
