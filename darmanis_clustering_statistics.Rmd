@@ -24,7 +24,7 @@ lapply(packages, function(package) {
 ```
 
 Import data that was previously obtained from submitting counts that were formatted
-by `arnon_asap_data_prep.Rmd` to [ASAP](https://asap.epfl.ch/)
+by `darmanis_asap_data_prep.Rmd` to [ASAP](https://asap.epfl.ch/)
 ```{r Import data}
 # Get the file names of all the normalized files
 normalized.files <- dir(file.path("darmanis_data", "normalized_darmanis"))
