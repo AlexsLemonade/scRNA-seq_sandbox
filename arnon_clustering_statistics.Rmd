@@ -108,8 +108,8 @@ main.plot <- cowplot::plot_grid(
                                 rel_widths=c(1, 0.2))
 
 # Save to png
-ggplot2::ggsave(plot = main.plot, filename = "arnon_cell_type_tsne.png",
-                width = 10)
+ggplot2::ggsave(plot = main.plot, 
+                filename = file.path("results", "arnon_cell_type_tsne.png"))
 
 # Print out plot here
 main.plot
@@ -142,8 +142,8 @@ main.plot <- cowplot::plot_grid(
                                 rel_widths=c(1, 0.2))
 
 # Save to png
-ggplot2::ggsave(plot = main.plot, filename = "arnon_batch_tsne.png",
-                width = 10)
+ggplot2::ggsave(plot = main.plot, 
+                filename = file.path("results", "arnon_batch_tsne.png"))
 
 # Print out plot here
 main.plot
@@ -188,7 +188,8 @@ celltype.plot <- ggplot(data = cell.type.df, aes(x = L1, y = value, fill = varia
     facet_wrap(~variable)
 
 # Save plots to png
-ggplot2::ggsave(plot = celltype.plot, "arnon_cell_type_plots.png", 
+ggplot2::ggsave(plot = celltype.plot,
+                filename = file.path("results", "arnon_cell_type_plots.png"), 
                 width = 10)
 
 # Print plot
@@ -207,7 +208,9 @@ batch.plot <- ggplot(data = batch.df, aes(x = L1, y = value, fill = variable)) +
     facet_wrap(~variable)
 
 # Save plots to png
-ggplot2::ggsave(plot = batch.plot, "arnon_batch_plots.png", width = 10)
+ggplot2::ggsave(plot = batch.plot,
+                filename = file.path("results", "arnon_batch_plots.png"), 
+                width = 10)
 
 # Print plot
 batch.plot

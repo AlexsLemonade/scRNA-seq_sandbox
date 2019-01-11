@@ -107,7 +107,8 @@ main.plot <- cowplot::plot_grid(
                                 rel_widths=c(1, 0.2))
 
 # Save to png
-ggplot2::ggsave(main.plot, filename = "darmanis_cell_type_tsne.png")
+ggplot2::ggsave(main.plot, 
+                filename = file.path("results", "darmanis_cell_type_tsne.png"))
 
 # Print out plot here
 main.plot
@@ -129,7 +130,8 @@ batch.plots <- lapply(tsne, function(dataset) {
 main.plot <- cowplot::plot_grid(plotlist = batch.plots, align = "hv", ncol = 2)
 
 # Save to png
-ggplot2::ggsave(main.plot, filename = "darmanis_batch_tsne.png")
+ggplot2::ggsave(main.plot, 
+                filename = file.path("results", "darmanis_batch_tsne.png"))
 
 # Print out plot here
 main.plot
@@ -173,7 +175,9 @@ celltype.plot <- ggplot(data = cell.type.df, aes(x = L1, y = value, fill = varia
     facet_wrap(~variable)
 
 # Save plots to png
-ggplot2::ggsave(plot = celltype.plot, "darmanis_cell_type_stats_plots.png", width = 10)
+ggplot2::ggsave(plot = celltype.plot,
+                filename = file.path("results", "darmanis_cell_type_stats_plots.png"),
+                width = 10)
 
 # Print plot
 celltype.plot
@@ -191,7 +195,9 @@ batch.plot <- ggplot(data = batch.df, aes(x = L1, y = value, fill = variable)) +
     facet_wrap(~variable)
 
 # Save plots to png
-ggplot2::ggsave(plot = batch.plot, "darmanis_batch_stats_plots.png", width = 10)
+ggplot2::ggsave(plot = batch.plot, 
+                filename = file.path("results", "darmanis_batch_stats_plots.png"),
+                width = 10)
 
 # Print plot
 batch.plot
