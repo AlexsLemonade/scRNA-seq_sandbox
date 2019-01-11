@@ -3,6 +3,8 @@
 # Make functions to use for comparing normalization methods using clustering 
 
 # KmeansEval and KnnEval functions are adapted from Hu and Greene, 2018 CZI scripts
+# which can be found here: 
+# https://github.com/greenelab/CZI-Latent-Assessment/tree/master/single_cell_analysis
 
 DimPlot <- function(feature, metadata, xlabel = "x dim", ylabel = "y dim",
                     name = ""){
@@ -14,8 +16,9 @@ DimPlot <- function(feature, metadata, xlabel = "x dim", ylabel = "y dim",
   #  metadata: vector contains metadata labels
   #  xlabel: what to label the x dimension in the plot
   #  ylabel: what to label the y dimension in the plot
+  #  name: what you would like the title of the plot to be
   # Returns:
-  #  plot in Rmd of the provided data with labels of the metadata provided
+  #  scatterplot with labels of the metadata provided
   library(ggplot2)
   
   # Make metadata a factor if it is not
@@ -45,9 +48,10 @@ KmeansEval <- function(feature, metadata = metadata, n.iter = 10) {
   # Normalized mutual information (NMI) and adjusted rand index (ARI)
   #
   # Args:
-  #  feature: a data.frame contains x and y dimensions
+  #  feature: a data.frame contains x and y dimensions as the first and second 
+  #           columns
   #  metadata: vector contains cell type or other metadata information
-  #  iter: number of interation for k-means clustering
+  #  iter: number of iterations for k-means clustering
   # Returns:
   #   NMI and ARI results for each iteration, as a dataframe
   #   
@@ -55,7 +59,7 @@ KmeansEval <- function(feature, metadata = metadata, n.iter = 10) {
   metadata.num <- as.numeric(factor(metadata))
   sample.id <- seq(1:nrow(feature))
   
-  # iterative k-means
+  # Objects to store the stats over the iterations
   nmi.score.all <- c()
   ari.score.all <- c()
   
@@ -86,13 +90,14 @@ KmeansEval <- function(feature, metadata = metadata, n.iter = 10) {
 }
 
 KnnEval <- function(feature, metadata = metadata, n.iter = 10){
-  # This function performs knn based evaluation 
+  # This function performs knn based evaluation for the number of iterations and
+  # returns kappa of each iteration
   # Args:
   #  feature: a data.frame contains x and y dimensions
   #  metadata: vector contains cell type or other metadata information  
-  #  n.iter: number of iteration for knn clustering
+  #  n.iter: number of iterations for knn clustering
   # Returns:
-  #  list of kappa scores for each iteration of KNN, as a dataframe
+  #  data.frame with kappa scores for each iteration of KNN
   
   # Make the data into a data.frame:
   feature <- data.frame(feature, "metadata" = metadata)
@@ -111,7 +116,7 @@ KnnEval <- function(feature, metadata = metadata, n.iter = 10){
     train <- feature[data.split[[iter]], ]
     
     # Isolate samples for testing the model
-    test <-  feature[ -data.split[[iter]], ]
+    test <-  feature[-data.split[[iter]], ]
     
     # Perform KNN model fitting
     knn.fit <- caret::train(metadata~. , data = train, method = "knn",
