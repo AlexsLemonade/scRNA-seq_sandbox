@@ -39,7 +39,7 @@ normalized.data <- lapply(normalized.files, function(file) {
                           })
 
 # Keep all the gene lists
-genes <- lapply(normalized.data, function(x) x[,1])
+genes <- lapply(normalized.data, function(x) x[, 1])
 
 # Keep the names with it.
 names(normalized.data) <- gsub("\\.tab|arnon_", "", normalized.files)
