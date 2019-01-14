@@ -62,11 +62,11 @@ opt <- parse_args(OptionParser(option_list = option_list))
 
 #--------------------------------Set up options--------------------------------#
 
-opt$metadata <- file.path("darmanis_data", "GSE84465_meta.tsv")
+opt$metadata <- file.path("darmanis_data", "metadata.tsv")
 opt$data <- file.path("darmanis_data", "normalized_darmanis")
-opt$label <- "darmanis"
+opt$label <- ""
 opt$output <- "results"
-opt$reduce <- "tsne"
+opt$reduce <- "pca"
 
 # Check that the dimension reduction option given is supported
 if (!(opt$reduce %in% c("tnse", "pca", "umap", "none"))){
@@ -100,33 +100,41 @@ names(datasets) <- gsub("\\..*$", "", dataset.names)
 if (opt$reduce != "none") {
   # Run dimension reduction on each dataset and extract x and y coordinates
   dim.red.data <- lapply(datasets, function(dataset) {
-  
+    
+    # Extract sample names
+    samples <- colnames(dataset)[-1]
+    
     if (opt$reduce == "tsne") {
       # Run tsne
       dim.red <- Rtsne::Rtsne(t(dataset[,-1]), check_duplicates = FALSE)
   
       # Only keep the dimension coordinates
-      dim.red <- dim.red$Y
+      dim.red <- data.frame(dim.red$Y)
     }
     if (opt$reduce == "pca") {
       # Run tsne
-      dim.red <- prcomp(t(dataset[,-1]), scale. = TRUE)
+      dim.red <- prcomp(t(dataset[,-1]))
       
       # Only keep the scores for first two PCs
-      dim.red <- dim.red$x[, 1:2]
+      dim.red <- data.frame(dim.red$x[, 1:2])
     }
     if (opt$reduce == "umap") {
       # Run tsne
       dim.red <- umap::umap(t(dataset[,-1]))
       
       # Only keep the dimension coordinates
-      dim.red <- dim.red$Y
+      dim.red <- data.frame(dim.red$Y)
     }
     # Keep the sample names
-    names(dim.red) <- samples
+    rownames(dim.red) <- samples
     
-    # Save these dimensions to a tsv file
+    # Extract this dataset's name 
     set.name <- names(datasets)[parent.frame()$i[]]
+    
+    # Save these dimensions to a tsv file with their dataset name
+    readr::write_tsv(dim.red, 
+                     file.path(opt$output, paste0(opt$reduce, "_", opt$label, 
+                                                  "_", set.name, ".tsv")))
   })
   
 }
@@ -136,25 +144,30 @@ if (opt$reduce != "none") {
 meta <- readr::read_tsv(opt$metadata)
 
 # Obtain variable names from metadata import
-variables <- names(metadata)
+variable.names <- gsub(".ch1", "", colnames(meta))
+variable.names <- gsub("\\.", "_", variable.names)
 
-for (variable in ncol(metadata)) {
+for (variable in 1:ncol(meta)) {
   # Plot with metadata labels
-  metadata.plots <- lapply(dim.red, function(dataset) {
+  metadata.plots <- lapply(dim.red.data, function(dataset) {
   
     # Get data normalizaion name
-    set.name <- names(dim.red)[parent.frame()$i[]]
-
+    set.name <- names(dim.red.data)[parent.frame()$i[]]
+    
+    # Select one of the metadata variables 
+    metadata <- meta[, variable]
+    
     # Make plots for cell type and plate batch 
     DimPlot(dataset, metadata, xlabel = paste(opt$reduce, "dim 1"),
-            ylabel = paste(opt$reduce, "dim 2"), name = set.name)
+            ylabel = paste(opt$reduce, "dim 2"), 
+            name = paste0(variable.names[variable], "_", set.name))
   })
 
   # Extract the legend
   legend <- cowplot::get_legend(metadata.plots[[1]])
 
   # Surpressing the legend in the files
-  cell.type.plots <- lapply(cell.type.plots, function(a.plot) {
+  metadata.plots <- lapply(metadata.plots, function(a.plot) {
                             a.plot + theme(legend.position = 'none')
                             })
 
@@ -166,9 +179,6 @@ for (variable in ncol(metadata)) {
 
   # Save to png
   ggplot2::ggsave(plot = main.plot, 
-                  filename = file.path("results", paste0(opt$label, opt$reduce,
-                                                         ".png")))
-
-  # Print out plot here
-  main.plot
+                  file.path("results", paste0(opt$label, "_", opt$reduce, "_",
+                                              variable.names[variable], ".png")))
 }
