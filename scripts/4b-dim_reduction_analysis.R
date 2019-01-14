@@ -141,16 +141,13 @@ if (opt$reduce != "none") {
 
 #-----------------------Plot with metadata variable labels---------------------#
 # Read in the metadata
-meta <- readr::read_tsv(opt$metadata)
+meta <- as.list(readr::read_tsv(opt$metadata))
 
 # Obtain variable names from metadata import
-variable.names <- gsub(".ch1", "", colnames(meta))
+variable.names <- gsub(".ch1", "", names(meta))
 variable.names <- gsub("\\.", "_", variable.names)
 
 for (variable in 1:ncol(meta)) {
-  # Select one of the metadata variables 
-  metadata <- meta[, variable]
-  
   # Plot with metadata labels
   metadata.plots <- lapply(dim.red.data, function(dataset) {
   
@@ -158,7 +155,7 @@ for (variable in 1:ncol(meta)) {
     set.name <- names(dim.red.data)[parent.frame()$i[]]
     
     # Make plots for cell type and plate batch 
-    DimPlot(dataset, metadata, xlabel = paste(opt$reduce, "dim 1"),
+    DimPlot(dataset, meta[[variable]], xlabel = paste(opt$reduce, "dim 1"),
             ylabel = paste(opt$reduce, "dim 2"), 
             name = paste0(variable.names[variable], "_", set.name))
   })
