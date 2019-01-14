@@ -148,14 +148,14 @@ variable.names <- gsub(".ch1", "", colnames(meta))
 variable.names <- gsub("\\.", "_", variable.names)
 
 for (variable in 1:ncol(meta)) {
+  # Select one of the metadata variables 
+  metadata <- meta[, variable]
+  
   # Plot with metadata labels
   metadata.plots <- lapply(dim.red.data, function(dataset) {
   
     # Get data normalizaion name
     set.name <- names(dim.red.data)[parent.frame()$i[]]
-    
-    # Select one of the metadata variables 
-    metadata <- meta[, variable]
     
     # Make plots for cell type and plate batch 
     DimPlot(dataset, metadata, xlabel = paste(opt$reduce, "dim 1"),
@@ -168,8 +168,8 @@ for (variable in 1:ncol(meta)) {
 
   # Surpressing the legend in the files
   metadata.plots <- lapply(metadata.plots, function(a.plot) {
-                            a.plot + theme(legend.position = 'none')
-                            })
+                           a.plot + theme(legend.position = 'none')
+                          })
 
   # Put all plots and legend together
   main.plot <- cowplot::plot_grid(cowplot::plot_grid(plotlist = metadata.plots,

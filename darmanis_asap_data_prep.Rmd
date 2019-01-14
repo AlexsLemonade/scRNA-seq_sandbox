@@ -43,8 +43,9 @@ names(convert.key) <- as.character(id.key$run)
 # Obtain GSM ids using conversion key and make these the column names 
 colnames(data) <- dplyr::recode(colnames(data), !!!convert.key)
 
-# Only keep metadata for samples in the set
+# Filter out samples not in the data
 geo.meta <- geo.meta[match(colnames(data)[-1], geo.meta$geo_accession), ]
+
 ```
 
 ### ASAP only likes round numbers for the counts
@@ -82,6 +83,11 @@ prepped.data <- prepped.data %>% dplyr::select(batch.info[, 1])
 head(batch.info)
 ```
 
+```{r Filter metadata to match}
+# Only keep metadata for samples in the set
+geo.meta <- geo.meta[match(colnames(prepped.data)[-1], geo.meta$geo_accession), ]
+```
+
 ### Write data file in the format ASAP will take.
 ASAP wants a typical gene by column gene expression matrix with samples with 
 the column names and the first column being the gene names.
@@ -98,6 +104,13 @@ readr::write_tsv(prepped.data, file.path("darmanis_data", "normalized_darmanis",
 # Write batch info file for ASAP use
 readr::write_tsv(data.frame(batch.info), 
                  file.path("darmanis_data", "batch.info.txt"))
+```
+
+### Write metadata info to be used later
+```{r Write batch file}
+# Write metadata file for subsequent testing
+geo.meta %>% dplyr::select("cell.type.ch1", "plate.id.ch1") %>%
+             readr::write_tsv(file.path("darmanis_data", "metadata.tsv"))
 ```
 
 Session info:
