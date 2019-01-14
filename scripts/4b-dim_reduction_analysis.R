@@ -42,7 +42,8 @@ option_list <- list(
               with gene info as the first column",
               metavar = "character"),
   make_option(opt_str = c("-m", "--metadata"), type = "character",
-              default = "none", help = "Path to metadata file",
+              default = "none", help = "Path to metadata file that contains 
+              only the metadata variables you wish to test and label by.",
               metavar = "character"),
   make_option(opt_str = c("-r", "--reduce"), type = "character",
               default = "none", help = "Dimension reduction technique to use.
@@ -61,7 +62,7 @@ opt <- parse_args(OptionParser(option_list = option_list))
 
 #--------------------------------Set up options--------------------------------#
 
-opt$metadata <- file.path("darmanis_data", "meta_data.csv")
+opt$metadata <- file.path("darmanis_data", "GSE84465_meta.tsv")
 opt$data <- file.path("darmanis_data", "normalized_darmanis")
 opt$label <- "darmanis"
 opt$output <- "results"
@@ -94,9 +95,6 @@ dataset.names <- dir(opt$data)
 
 # Remove file extension name and make it the name in the list
 names(datasets) <- gsub("\\..*$", "", dataset.names)
-
-# Read in the data
-meta <- readr::read_csv(opt$metadata)
 
 #-------------------------------Dimension Reduction----------------------------#
 if (opt$reduce != "none") {
@@ -133,96 +131,44 @@ if (opt$reduce != "none") {
   
 }
 
-# Plot with metadata labels
-metadata.plots <- lapply(dim.red, function(dataset) {
+#-----------------------Plot with metadata variable labels---------------------#
+# Read in the metadata
+meta <- readr::read_tsv(opt$metadata)
+
+# Obtain variable names from metadata import
+variables <- names(metadata)
+
+for (variable in ncol(metadata)) {
+  # Plot with metadata labels
+  metadata.plots <- lapply(dim.red, function(dataset) {
   
-# Get data normalizaion name
-set.name <- names(dim.red)[parent.frame()$i[]]
+    # Get data normalizaion name
+    set.name <- names(dim.red)[parent.frame()$i[]]
 
-# Make plots for cell type and plate batch 
-DimPlot(dataset, metadata, xlabel = paste(opt$reduce, "dim 1"),
-        ylabel = paste(opt$reduce, "dim 2"), name = set.name)
-})
+    # Make plots for cell type and plate batch 
+    DimPlot(dataset, metadata, xlabel = paste(opt$reduce, "dim 1"),
+            ylabel = paste(opt$reduce, "dim 2"), name = set.name)
+  })
 
-# Extract the legend
-legend <- cowplot::get_legend(metadata.plots[[1]])
+  # Extract the legend
+  legend <- cowplot::get_legend(metadata.plots[[1]])
 
-# Surpressing the legend in the files
-cell.type.plots <- lapply(cell.type.plots, function(a.plot) {
-a.plot + theme(legend.position = 'none')
-})
+  # Surpressing the legend in the files
+  cell.type.plots <- lapply(cell.type.plots, function(a.plot) {
+                            a.plot + theme(legend.position = 'none')
+                            })
 
-# Put all plots and legend together
-main.plot <- cowplot::plot_grid(
-cowplot::plot_grid(plotlist = metadata.plots, ncol = 2, align='hv'),
-cowplot::plot_grid(NULL, legend, ncol = 2),
-rel_widths=c(1, 0.2))
+  # Put all plots and legend together
+  main.plot <- cowplot::plot_grid(cowplot::plot_grid(plotlist = metadata.plots,
+                                                    ncol = 2, align='hv'),
+                                  cowplot::plot_grid(NULL, legend, ncol = 2),
+                                  rel_widths=c(1, 0.2))
 
-# Save to png
-ggplot2::ggsave(plot = main.plot, 
-                filename = file.path("results", paste0(opt$label, "tsne.png")))
+  # Save to png
+  ggplot2::ggsave(plot = main.plot, 
+                  filename = file.path("results", paste0(opt$label, opt$reduce,
+                                                         ".png")))
 
-# Print out plot here
-main.plot
-
-#Run cell type analyses on all the dim.red.data datasets
-# Get knn and kmeans results for all dim.red.data's of all datasets
-cell.type.results <- lapply(dim.red.data, function(dataset) {
-  # Get clustering results of the data
-  knn.results <- KnnEval(dataset, metadata = cell.types)
-  kmeans.results <- KmeansEval(dataset, metadata = cell.types)
-  
-  # Return data frame of combined results
-  data.frame(knn.results, kmeans.results)
-})
-
-
-# Run plate batch analyses on all the tsne datasets
-# Get knn and kmeans results for all tsne's of all datasets
-batch.results <- lapply(tsne, function(dataset) {
-  # Get clustering results of the data  
-  knn.results <- KnnEval(dataset, metadata = plate.batch)
-  kmeans.results <- KmeansEval(dataset,
-                               metadata = plate.batch)
-  
-  # Return data frame of combined results  
-  data.frame(knn.results, kmeans.results)
-})
-
-
-# Plot all the cell type statistics on a boxplot
-# Melt the  list into one data.frame
-cell.type.df <- reshape::melt(cell.type.results)
-
-# Make the plot
-celltype.plot <- ggplot(data = cell.type.df, aes(x = L1, y = value, fill = variable)) +
-  geom_boxplot(position = position_dodge()) + 
-  xlab("Normalization method") +
-  facet_wrap(~variable)
-
-# Save plots to png
-ggplot2::ggsave(plot = celltype.plot,
-                filename = file.path("results", "arnon_cell_type_plots.png"), 
-                width = 10)
-
-# Print plot
-celltype.plot
-
-
-Plot all the batch statistics on a boxplot
-# Melt the  list into one data.frame
-batch.df <- reshape::melt(batch.results)
-
-# Make the plot
-batch.plot <- ggplot(data = batch.df, aes(x = L1, y = value, fill = variable)) +
-  geom_boxplot(position = position_dodge()) + 
-  xlab("Normalization method") +
-  facet_wrap(~variable)
-
-# Save plots to png
-ggplot2::ggsave(plot = batch.plot,
-                filename = file.path("results", "arnon_batch_plots.png"), 
-                width = 10)
-
-# Print plot
-batch.plot
+  # Print out plot here
+  main.plot
+}
