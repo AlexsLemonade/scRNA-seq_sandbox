@@ -42,4 +42,4 @@ srafile <- file.path(opt$sql)
 con <- dbConnect(RSQLite::SQLite(), srafile)
 
 # Download each sample
-getFASTQfile(opt$sample, con, destDir = opt$dir))
+getFASTQfile(opt$sample, con, destDir = opt$dir)
