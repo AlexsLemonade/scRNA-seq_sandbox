@@ -1,20 +1,27 @@
 # C.Savonen, CCDL for ALSF
 # 2019
 # 
-# Purpose: Using Seurat for post-processing of scRNA-seq gene matrix .tsv 
+# Purpose: Perform dimension reduction analyses of scRNA-seq gene matrix .tsv 
 #          In gene x sample format. 
-#
-# Options:
-# "-d" - Directory of where dataset(s) to analyze exist
-# "-m" - file of metadata information to analyze. Each column in this metadata 
-#        will be analyzed. Input should be a path to a tsv file 
-# 
+#          
+# "-d" : Path to gene matrix in tab delimited format, gene x sample with gene 
+#        info as the first column
+# "-m" : Path to metadata file that contains only the metadata variables you 
+#        wish to test and label by.
+# "-r" : Dimension reduction technique to use. Options are: 'pca', 'tsne', or 
+#        'umap'
+# "-o" : Directory where you would like the output to go. Default is current 
+#        directory
+# "-l" : Optional label for output files. 
+
 # Command line example:
 #
-# Rscript scripts/4a-seurat_normalize.R \
-# -d data/salmon_quants \
-# -o data \
-# -l "patel"
+# Rscript scripts/4b-dim_reduction_analysis.R \
+# -d data/gene_matrix.tsv \
+# -m metadata.tsv \
+# -r pca \
+# -o results \
+# -l darmanis
 # 
 # Magrittr pipe
 `%>%` <- dplyr::`%>%`
@@ -26,15 +33,6 @@ source(file.path("scripts", "util", "clustering_statistics_functions.R"))
 library(ggplot2)
 library(optparse)
 
-# These are the necessary packages
-packages <- c("Rtsne", "NMI", "caret")
-
-# Check if these packages are installed and install them if they aren't
-lapply(packages, function(package) {
-  if (!(package %in% installed.packages())) {
-    install.packages(package)
-  }
-})
 #--------------------------------Set up options--------------------------------#
 option_list <- list(
   make_option(opt_str = c("-d", "--data"), type = "character", default = getwd(),
@@ -65,11 +63,11 @@ opt <- parse_args(OptionParser(option_list = option_list))
 opt$metadata <- file.path("darmanis_data", "metadata.tsv")
 opt$data <- file.path("darmanis_data", "normalized_darmanis")
 opt$label <- ""
-opt$output <- "results"
+opt$output <- "results/pca_darmanis"
 opt$reduce <- "pca"
 
 # Check that the dimension reduction option given is supported
-if (!(opt$reduce %in% c("tnse", "pca", "umap", "none"))){
+if (!(opt$reduce %in% c("tnse", "pca", "umap"))){
   stop("That is not a dimension reduction technique supported by this script. 
        Check for typos. Acceptable options:'tsne', 'pca', or 'umap'")
 }
@@ -97,47 +95,44 @@ dataset.names <- dir(opt$data)
 names(datasets) <- gsub("\\..*$", "", dataset.names)
 
 #-------------------------------Dimension Reduction----------------------------#
-if (opt$reduce != "none") {
-  # Run dimension reduction on each dataset and extract x and y coordinates
-  dim.red.data <- lapply(datasets, function(dataset) {
+# Run dimension reduction on each dataset and extract x and y coordinates
+dim.red.data <- lapply(datasets, function(dataset) {
     
-    # Extract sample names
-    samples <- colnames(dataset)[-1]
+  # Extract sample names
+  samples <- colnames(dataset)[-1]
     
-    if (opt$reduce == "tsne") {
-      # Run tsne
-      dim.red <- Rtsne::Rtsne(t(dataset[,-1]), check_duplicates = FALSE)
+  if (opt$reduce == "tsne") {
+    # Run tsne
+    dim.red <- Rtsne::Rtsne(t(dataset[,-1]), check_duplicates = FALSE)
   
-      # Only keep the dimension coordinates
-      dim.red <- data.frame(dim.red$Y)
-    }
-    if (opt$reduce == "pca") {
-      # Run tsne
-      dim.red <- prcomp(t(dataset[,-1]))
+    # Only keep the dimension coordinates
+    dim.red <- data.frame(dim.red$Y)
+  }
+  if (opt$reduce == "pca") {
+    # Run tsne
+    dim.red <- prcomp(t(dataset[,-1]))
       
-      # Only keep the scores for first two PCs
-      dim.red <- data.frame(dim.red$x[, 1:2])
-    }
-    if (opt$reduce == "umap") {
-      # Run tsne
-      dim.red <- umap::umap(t(dataset[,-1]))
+    # Only keep the scores for first two PCs
+    dim.red <- data.frame(dim.red$x[, 1:2])
+  }
+  if (opt$reduce == "umap") {
+    # Run tsne
+    dim.red <- umap::umap(t(dataset[,-1]))
       
-      # Only keep the dimension coordinates
-      dim.red <- data.frame(dim.red$Y)
-    }
-    # Keep the sample names
-    rownames(dim.red) <- samples
+    # Only keep the dimension coordinates
+    dim.red <- data.frame(dim.red$Y)
+  }
+  # Keep the sample names
+  rownames(dim.red) <- samples
     
-    # Extract this dataset's name 
-    set.name <- names(datasets)[parent.frame()$i[]]
+  # Extract this dataset's name 
+  set.name <- names(datasets)[parent.frame()$i[]]
     
-    # Save these dimensions to a tsv file with their dataset name
-    readr::write_tsv(dim.red, 
-                     file.path(opt$output, paste0(opt$reduce, "_", opt$label, 
+  # Save these dimensions to a tsv file with their dataset name
+  readr::write_tsv(dim.red, 
+                   file.path(opt$output, paste0(opt$reduce, "_", opt$label, 
                                                   "_", set.name, ".tsv")))
-  })
-  
-}
+})
 
 #-----------------------Plot with metadata variable labels---------------------#
 # Read in the metadata
