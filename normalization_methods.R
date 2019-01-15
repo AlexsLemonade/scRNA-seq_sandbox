@@ -54,15 +54,16 @@ option_list <- list(
 opt <- parse_args(OptionParser(option_list = option_list))
 
 ### Default Parameters
-opt$data <- "normalized_darmanis/darmanis_counts.tab"
-opt$output <- "normalized_darmanis"
-opt$algorithm <- "log"
+opt$data <- "darmanis_data/normalized_darmanis/darmanis_counts.tab"
+opt$output <- "darmanis_data/normalized_darmanis"
+opt$algorithm <- "vsd"
+opt$label <- "darmanis"
 
 # Check that the dimension reduction option given is supported
-if (!(opt$reduce %in% c( 'log', 'voom', 'DESeq2', 'TMM'))){
+if (!(opt$algorithm %in% c( 'scale', 'log', 'voom', 'deseq2', 'vsd', 'rld', 'tmm'))){
   stop("That is not a normalization method supported by this script. 
-       Check for typos. Acceptable options:'scale', log', 'voom', 'deseq2', 'vsd', 'rld'
-       or 'tmm'")
+       Check for typos. Acceptable options:'scale', 'log', 'voom', 'deseq2', 
+       'vsd', 'rld' or 'tmm'")
 }
 
 # Create the output for results folder if it does not exist
@@ -74,6 +75,10 @@ if (!dir.exists(opt$output)) {
 #----------------------------------Load data-----------------------------------#
 # Read in a tsv file of data
 dataset <- readr::read_tsv(opt$data)
+
+# Separate genes from the numeric data
+genes <- dataset$gene
+dataset <- dataset[, -1]
 
 # Run normalization algorithms
 if (opt$algorithm == "scale"){ # default []
@@ -110,7 +115,7 @@ if (opt$algorithm == "scale"){ # default []
   data.colData <- data.frame(row.names = colnames(dataset))
   data.dds <- DESeq2::DESeqDataSetFromMatrix(dataset, colData = data.colData,
                                              design = ~1)
-  data.out <- assay(DESeq2::varianceStabilizingTransformation(data.dds, 
+  data.out <- SummarizedExperiment::assay(DESeq2::varianceStabilizingTransformation(data.dds, 
                                                               blind = TRUE))
   title <- "Log2 Expression (varianceStabilizingTransformation - DEseq2)"
   
@@ -118,19 +123,22 @@ if (opt$algorithm == "scale"){ # default []
   data.colData <- data.frame(row.names = colnames(dataset))
   data.dds <- DESeq2::DESeqDataSetFromMatrix(dataset, colData = data.colData,
                                              design = ~1)
-  data.out <- assay(DESeq2::rlogTransformation(data.dds, blind = TRUE))
+  data.out <- SummarizedExperiment::assay(DESeq2::rlogTransformation(data.dds, blind = TRUE))
   title <- "Log2 Expression (rlogTransformation - DEseq2)"
 }
 
+# Calculate percent zeroes
+perc.zero <- round(length(which(data.out == 0)) / length(as.matrix(data.out)), 3)
 
 # Print out summary: 
 cat("normalization method:", title, 
     "\n number of genes:", nrow(data.out), 
     "\n number of cells:", ncol(data.out),
-    "\n number of zeroes:", length(which(data.out == 0)),
-    "\n warnings:", data.warnings)
+    "\n percent zeroes:", perc.zero)
     
 # Save normalized data to a tsv file
-data.out$genes = rownames(data.out)
-readr::write_tsv(data.out[,c("genes", data.out.cols)], 
+data.out$genes <- genes
+
+# Save normalized data to a tsv file
+readr::write_tsv(data.out, 
                  paste0(opt$output, "/", opt$algorithm, "_", opt$label, ".tsv"))
