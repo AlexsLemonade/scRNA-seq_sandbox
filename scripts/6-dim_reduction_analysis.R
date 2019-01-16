@@ -129,8 +129,8 @@ dim.red.data <- lapply(datasets, function(dataset) {
     
   # Save these dimensions to a tsv file with their dataset name
   readr::write_tsv(dim.red, 
-                   file.path(opt$output, paste0(opt$reduce, opt$label, "_",
-                                                set.name, ".tsv")))
+                   file.path(opt$output, paste0(opt$reduce, "_", set.name,
+                                                ".tsv")))
 })
 
 #-----------------------Plot with metadata variable labels---------------------#
