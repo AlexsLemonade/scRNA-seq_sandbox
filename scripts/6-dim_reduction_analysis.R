@@ -2,10 +2,10 @@
 # 2019
 # 
 # Purpose: Perform dimension reduction analyses of scRNA-seq gene matrix .tsv 
-#          In gene x sample format. 
 #          
 # "-d" : Path to gene matrix in tab delimited format, gene x sample with gene 
-#        info as the first column
+#        info as the first column with gene info column labeled with the word 
+#        'gene' in it
 # "-m" : Path to metadata file that contains only the metadata variables you 
 #        wish to test and label by.
 # "-r" : Dimension reduction technique to use. Options are: 'pca', 'tsne', or 
@@ -37,7 +37,7 @@ library(optparse)
 option_list <- list(
   make_option(opt_str = c("-d", "--data"), type = "character", default = getwd(),
               help = "Path to gene matrix in tab delimited format, gene x sample
-              with gene info as the first column",
+              with gene info column labeled with the word 'gene' in it",
               metavar = "character"),
   make_option(opt_str = c("-m", "--metadata"), type = "character",
               default = "none", help = "Path to metadata file that contains 
@@ -92,9 +92,14 @@ names(datasets) <- gsub("\\..*$", "", dataset.names)
 #-------------------------------Dimension Reduction----------------------------#
 # Run dimension reduction on each dataset and extract x and y coordinates
 dim.red.data <- lapply(datasets, function(dataset) {
-    
-  # Remove gene column, keep only data
-  dataset <- dataset[, -grep('gene', colnames(dataset), ignore.case = TRUE)]
+  
+  # Find if there's a gene column so we can get rid of it
+  gene.col <- grep("gene", colnames(dataset), ignore.case = TRUE)
+  
+  if (length(gene.col > 0 )) {
+  # Make dataset the data only
+  dataset <- dataset[, -gene.col]
+  }
   
   # Extract sample names
   samples <- colnames(dataset)
