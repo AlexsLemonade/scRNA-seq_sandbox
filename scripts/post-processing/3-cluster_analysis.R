@@ -5,7 +5,10 @@
 #          kmeans and KNN clustering
 #          
 # "-d" : Path to gene matrix in tab delimited format, gene x sample with gene 
-#        info as the first column
+#        info labeled with the word "gene" as the column name. Default is to 
+#        read all files in given directory with ".tsv" into the dataset. If you
+#        prefer to explicitly list the files to be read in, separate file paths/names
+#        with a space. eg "pca_dataset_1.tsv pca_dataset_2.tsv"
 # "-m" : Path to metadata file that contains only the metadata variables you 
 #        wish to test and label by.
 # "-o" : Directory where you would like the output to go. Default is current 
@@ -15,7 +18,7 @@
 # Command line example:
 #
 # Rscript scripts/7-cluster_analysis.R \
-# -d data/gene_matrix.tsv \
+# -d pca_data \
 # -m metadata.tsv \
 # -o results \
 # -l darmanis
@@ -63,14 +66,23 @@ if (opt$label != "") {
 }
 
 #---------------------------------Read in data---------------------------------#
-# Get the file names of all the normalized files
-dataset.files <- dir(opt$data, full.names = TRUE)
+# Obtain list of file names: 
+if (dir.exists(opt$data)) { # If directory is given, read all tsv files
+  # Get the file names of all the normalized files
+  dataset.files <- dir(opt$data, full.names = TRUE)
+
+  # Only read in tsv files
+  dataset.files <- grep("\\.tsv$", dataset.files, value = TRUE)
+  
+} else { # Otherwise, make file list by separating by spaces
+  dataset.files <- opt$data <- strsplit(opt$data, " ")
+}
 
 # Read in each of the normalization files
 datasets <- lapply(dataset.files, readr::read_tsv)
 
-# Get names of datasets
-dataset.names <- dir(opt$data)
+# Obtain names of datasets
+dataset.names <- stringr::word(dataset.files, sep = "/", -1)
 
 # Remove file extension name and make it the name in the list
 names(datasets) <- gsub("\\..*$", "", dataset.names)
@@ -96,8 +108,9 @@ lapply(meta, function(meta.var) {
   # Check how large the smallest group in the metadata is
   no.knn <- min(summary(meta.var)) < 4
   if (no.knn) {
-    message("Groups are too irregular to run KNN clustering only kmeans will be
-            done")
+    message(paste0("Groups for variable: '", variable.name, 
+                   "' are too irregular to run KNN clustering only kmeans will 
+                   be done"))
   }
 
   # Get clustering results for all datasets
@@ -125,12 +138,14 @@ lapply(meta, function(meta.var) {
   
   # Save these data to a tsv 
   readr::write_tsv(cluster.results.df, 
-                   file.path(opt$output, paste0(variable.name, opt$label, ".tsv")))
+                   file.path(opt$output, paste0("cluster_stats_", variable.name,
+                                                opt$label, ".tsv")))
   
   # Make the plot
   cluster.stats.plot <- ggplot(data = cluster.results.df, 
                                aes(x = dataset, y = value, fill = stat)) +
     geom_boxplot(position = position_dodge()) + 
+    theme(axis.text.x = element_text(angle = 90, hjust = 1))
     xlab("Normalization method") +
     facet_wrap(~stat)
 
