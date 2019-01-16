@@ -98,3 +98,18 @@ Rscript scripts/5-run_normalization.R \
   -a all \
   -o ${dir}/normalized_${label} \
   -l ${label}
+
+#------------------------------Dimension reduction-----------------------------#
+Rscript scripts/6-dim_reduction_analysis.R \
+  -d ${dir}/normalized_${label} \
+  -m ${dir}/metadata.tsv \
+  -r pca \
+  -l ${label} \
+  -o results/pca_${label} 
+  
+#------------------------------Clustering analysis-----------------------------#
+Rscript scripts/7-cluster_analysis.R \
+  -d results/pca_${label} 
+  -m ${dir}/metadata.tsv \
+  -l ${label} \
+  -o results/pca_${label} 

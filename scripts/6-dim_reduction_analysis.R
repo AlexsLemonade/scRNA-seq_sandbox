@@ -59,12 +59,6 @@ option_list <- list(
 opt <- parse_args(OptionParser(option_list = option_list))
 
 #--------------------------------Set up options--------------------------------#
-opt$metadata <- file.path("darmanis_data", "metadata.tsv")
-opt$data <- file.path("darmanis_data", "normalized_darmanis")
-opt$label <- ""
-opt$output <- "results/pca_darmanis"
-opt$reduce <- "pca"
-
 # Check that the dimension reduction option given is supported
 if (!(opt$reduce %in% c("tnse", "pca", "umap"))){
   stop("That is not a dimension reduction technique supported by this script. 
@@ -83,9 +77,6 @@ dataset.files <- dir(opt$data, full.names = TRUE)
 
 # Read in each of the normalization files
 datasets <- lapply(dataset.files, readr::read_tsv)
-
-# Keep all the gene lists
-genes <- lapply(datasets, function(x) x[, 1])
 
 # Get names of datasets
 dataset.names <- dir(opt$data)
@@ -134,7 +125,7 @@ dim.red.data <- lapply(datasets, function(dataset) {
   # Save these dimensions to a tsv file with their dataset name
   readr::write_tsv(dim.red, 
                    file.path(opt$output, paste0(opt$reduce, "_", opt$label, 
-                                                  "_", set.name, ".tsv")))
+                                                "_", set.name, ".tsv")))
 })
 
 #-----------------------Plot with metadata variable labels---------------------#
@@ -145,7 +136,7 @@ meta <- as.list(readr::read_tsv(opt$metadata))
 variable.names <- gsub(".ch1", "", names(meta))
 variable.names <- gsub("\\.", "_", variable.names)
 
-for (variable in 1:ncol(meta)) {
+for (variable in 1:length(meta)) {
   # Plot with metadata labels
   metadata.plots <- lapply(dim.red.data, function(dataset) {
   
@@ -174,6 +165,6 @@ for (variable in 1:ncol(meta)) {
 
   # Save to png
   ggplot2::ggsave(plot = main.plot, 
-                  file.path("results", paste0(opt$label, "_", opt$reduce, "_",
-                                              variable.names[variable], ".png")))
+                  file.path(opt$output, paste0(opt$label, "_", opt$reduce, "_",
+                                               variable.names[variable], ".png")))
 }

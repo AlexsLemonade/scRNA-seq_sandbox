@@ -46,15 +46,10 @@ option_list <- list(
   make_option(opt_str = c("-l", "--label"), type = "character",
               default = "", help = "Optional label for output files",
               metavar = "character")
-  )
+)
 
 # Parse options
 opt <- parse_args(OptionParser(option_list = option_list))
-
-opt$data <- file.path("results", "pca")
-opt$metadata <- file.path("darmanis_data", "metadata.tsv")
-opt$label <- "cell_type"
-opt$output <- "results"
 
 #---------------------------------Read in data---------------------------------#
 # Get the file names of all the normalized files
@@ -73,6 +68,9 @@ names(datasets) <- gsub("\\..*$", "", dataset.names)
 # Read in the metadata
 meta <- as.list(readr::read_tsv(opt$metadata))
 
+# Make all the metadata into factors
+meta <- lapply(meta, as.factor)
+
 # Obtain variable names from metadata import
 variable.names <- gsub(".ch1", "", names(meta))
 variable.names <- gsub("\\.", "_", variable.names)
@@ -84,14 +82,27 @@ lapply(meta, function(meta.var) {
   # Extract the variable name 
   variable.name <- variable.names[parent.frame()$i[]]
   
-  # Get knn and kmeans results for all tsne's of all datasets
+  # Check how large the smallest group in the metadata is
+  no.knn <- min(summary(meta.var)) < 4
+  if (no.knn) {
+    message("Groups are too irregular to run KNN clustering only kmeans will be
+            done")
+  }
+
+  # Get clustering results for all datasets
   cluster.results <- lapply(datasets, function(dataset) {
-                            # Get clustering results of the data
-                            knn.results <- KnnEval(dataset, metadata = meta.var)
+                            # Run kmeans clustering 
                             kmeans.results <- KmeansEval(dataset, metadata = meta.var)
-  
-                            # Return data frame of combined results
-                            data.frame(knn.results, kmeans.results)
+    
+                            # Run KNN if groupings are large enough
+                            if (no.knn) {
+                              return(kmeans.results)
+                            } else {
+                              knn.results <- KnnEval(dataset, metadata = meta.var)
+                              
+                              # Return data frame of combined results
+                              return(data.frame(knn.results, kmeans.results))
+                            }
   })
 
   # Plot cluster statistics on a boxplot
@@ -99,15 +110,16 @@ lapply(meta, function(meta.var) {
   cluster.results.df <- reshape::melt(cluster.results)
 
   # Make the plot
-  cluster.stats.plot <- ggplot(data = cluster.results.df, aes(x = L1, y = value,
-                                                            fill = variable)) +
+  cluster.stats.plot <- ggplot(data = cluster.results.df, 
+                               aes(x = L1, y = value, fill = variable)) +
     geom_boxplot(position = position_dodge()) + 
     xlab("Normalization method") +
     facet_wrap(~variable)
 
   # Save plots to png
   ggplot2::ggsave(plot = cluster.stats.plot,
-                  file.path(opt$output, paste0(opt$label, "plots.png")), 
+                  file.path(opt$output, paste0(opt$label, "_", variable.name,
+                                               "_plots.png")), 
                   width = 10)
                 
 })
