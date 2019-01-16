@@ -5,7 +5,8 @@ date: "12/6/2018"
 output: html_document
 ---
 
-## Purpose: Prep data for use in [ASAP online](https://asap.epfl.ch/)
+## Purpose: Prep data for use in post-processing pipeline or in 
+[ASAP online](https://asap.epfl.ch/)
 ```{r Import functions}
 source(file.path("scripts", "util", "asap_prep_functions.R"))
 

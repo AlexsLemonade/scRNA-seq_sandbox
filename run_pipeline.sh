@@ -23,15 +23,15 @@ mkdir ref_files
 # Will check for genome index first before running
 if [ ! -e ref_files/human_index ]; then
 
-# Get the human transcriptome
-curl ftp://ftp.ensembl.org/pub/release-94/fasta/homo_sapiens/cdna/Homo_sapiens.GRCh38.cdna.all.fa.gz \
-  -o ref_files/Homo_sapiens.GRCh38.cdna.all.fa.gz
+  # Get the human transcriptome
+  curl ftp://ftp.ensembl.org/pub/release-94/fasta/homo_sapiens/cdna/Homo_sapiens.GRCh38.cdna.all.fa.gz \
+    -o ref_files/Homo_sapiens.GRCh38.cdna.all.fa.gz
 
-# Index the human transcriptome
-salmon --threads=16 --no-version-check index \
-  -t ref_files/Homo_sapiens.GRCh38.cdna.all.fa.gz \
-  -i ref_files/human_index \
-  -k 23
+  # Index the human transcriptome
+  salmon --threads=16 --no-version-check index \
+    -t ref_files/Homo_sapiens.GRCh38.cdna.all.fa.gz \
+    -i ref_files/human_index \
+    -k 23
 fi
 
 #--------------------------- Download fastq data-------------------------------#
@@ -86,30 +86,3 @@ Rscript scripts/3-make_gene_matrix.R \
   -o ${dir} \
   -m 0.5 \
   -l ${dir}
-
-#-------------------------------Get metadata tsv-------------------------------#
-Rscript scripts/4-metadata_setup.R \
-  -g ${GSE} \
-  -o ${dir}
-
-#-------------------------------Run normalization------------------------------#
-Rscript scripts/5-run_normalization.R \
-  -d ${dir}/normalized_${label}/counts_${label}.tsv \
-  -a all \
-  -o ${dir}/normalized_${label} \
-  -l ${label}
-
-#------------------------------Dimension reduction-----------------------------#
-Rscript scripts/6-dim_reduction_analysis.R \
-  -d ${dir}/normalized_${label} \
-  -m ${dir}/metadata.tsv \
-  -r pca \
-  -l ${label} \
-  -o results/pca_${label} 
-  
-#------------------------------Clustering analysis-----------------------------#
-Rscript scripts/7-cluster_analysis.R \
-  -d results/pca_${label} 
-  -m ${dir}/metadata.tsv \
-  -l ${label} \
-  -o results/pca_${label} 
