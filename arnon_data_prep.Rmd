@@ -5,7 +5,8 @@ date: "12/6/2018"
 output: html_document
 ---
 
-## Purpose: Prep data for use in [ASAP online](https://asap.epfl.ch/)
+## Purpose: Prep data for normalization by `5-run_normalization.R` or for use in
+[ASAP online](https://asap.epfl.ch/)
 ```{r Import functions}
 source(file.path("scripts", "util", "asap_prep_functions.R"))
 ```
@@ -28,10 +29,20 @@ if (file.exists(file.path("arnon_data", "meta_data.csv"))) {
 }
 ```
 
+
+### ASAP only likes round numbers for the counts
+Filter out genes that don't have at least one count in 1% of cells and filter out 
+samples that don't express at least 100 genes. This function assumes the first 
+column holds the genes.
+```{r Filter out genes}
+prepped.data <- AsapFilter(data, min_counts = 1, perc_genes = 0.01,
+                           num_genes = 100)
+```
+
 ### Make sure the samples and the metadata are in the same order.
 ```{r Order samples}
 # Put samples in same order 
-geo.meta <- geo.meta[match(colnames(data)[-1], geo.meta$title), ]
+geo.meta <- geo.meta[match(colnames(prepped.data)[-1], geo.meta$title), ]
 ```
 
 ### Make batch file for ASAP to correct batches by.
@@ -44,15 +55,6 @@ batch.info <- cbind(geo.meta$geo_accession,
 head(batch.info)
 ```
 
-### ASAP only likes round numbers for the counts
-Filter out genes that don't have at least one count in 1% of cells and filter out 
-samples that don't express at least 100 genes. This function assumes the first 
-column holds the genes.
-```{r Filter out genes}
-prepped.data <- AsapFilter(data, min_counts = 1, perc_genes = 0.01,
-                           num_genes = 100)
-```
-
 ### Write data file in the format ASAP will take.
 ASAP wants a typical gene by column gene expression matrix with samples with 
 the column names and the first column being the gene names.
@@ -61,7 +63,8 @@ what you have used in a drop down menu on ASAP.
 ```{r Write data file}
 # Write a copy of the counts in the normalized data file
 readr::write_tsv(prepped.data, file.path("arnon_data", "normalized_arnon", 
-                                         "arnon_counts.tab"))
+                                         "counts_arnon.tsv"))
+
 ```
 
 ### Write batch file in same type of format
@@ -70,7 +73,12 @@ readr::write_tsv(prepped.data, file.path("arnon_data", "normalized_arnon",
 readr::write_tsv(data.frame(batch.info), file.path("arnon_data",
                                                    "batch.info.txt"))
 ```
-
+### Write metadata info to be used later
+```{r Write batch file}
+# Write metadata file for subsequent testing
+geo.meta %>% dplyr::select("cell.type.ch1", "characteristics_ch1.2") %>%
+             readr::write_tsv(file.path("arnon_data", "metadata.tsv"))
+```
 Session info: 
 ```{r}
 sessionInfo()

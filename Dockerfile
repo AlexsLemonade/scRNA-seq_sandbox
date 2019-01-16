@@ -27,7 +27,10 @@ RUN apt-get update -qq && apt-get -y --no-install-recommends install \
     fastqcr \
     rbamtools \
     rjson \
-  && R -e "BiocInstaller::biocLite(c('SRAdb', 'DBI'), suppressUpdates = TRUE)" 
+    caret \
+    Rtsne \
+    NMI \
+  && R -e "BiocInstaller::biocLite(c('SRAdb', 'DBI', 'DESeq2', 'limma', 'edgeR'), suppressUpdates = TRUE)" 
 
 # Install Rsubread by itself
 RUN R -e 'BiocInstaller::biocLite("Rsubread")'

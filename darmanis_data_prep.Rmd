@@ -1,11 +1,12 @@
 ---
-title: "Darmanis_ASAP_data_prep"
+title: "Darmanis_data_prep"
 author: "C. Savonen, CCDL for ALSF"
 date: "12/6/2018"
 output: html_document
 ---
 
-## Purpose: Prep data for use in [ASAP online](https://asap.epfl.ch/)
+## Purpose: Prep data for normalization by `5-run_normalization.R` or for use in
+[ASAP online](https://asap.epfl.ch/)
 ```{r Import functions}
 source(file.path("scripts", "util", "asap_prep_functions.R"))
 
@@ -43,12 +44,12 @@ names(convert.key) <- as.character(id.key$run)
 # Obtain GSM ids using conversion key and make these the column names 
 colnames(data) <- dplyr::recode(colnames(data), !!!convert.key)
 
-# Only keep metadata for samples in the set
+# Filter out samples not in the data
 geo.meta <- geo.meta[match(colnames(data)[-1], geo.meta$geo_accession), ]
 ```
 
 ### ASAP only likes round numbers for the counts
-Filter out genes that don't have at least one count in 1% of cells and filter out 
+Filter out genes that don't have at least one count in 1% of cells and filter out
 samples that don't express at least 100 genes. This function assumes the first column
 holds the genes
 ```{r Filter out genes}
@@ -56,6 +57,10 @@ prepped.data <- AsapFilter(data, min_counts = 1, perc_genes = 0.01,
                            num_genes = 100)
 ```
 
+```{r Filter metadata to match}
+# Only keep metadata for samples in the set
+geo.meta <- geo.meta[match(colnames(prepped.data)[-1], geo.meta$geo_accession), ]
+```
 ### Make batch file for ASAP to correct batches by.
 In this case we will use the plate ids. 
 ASAP wants the first column to be the sample IDs that match your sample data file
@@ -76,10 +81,17 @@ regex <- paste0(paste0("^", batch.small, "$"), collapse = "|")
 batch.info <- batch.info[ -grep(regex, batch.info[, 2]), ]
 
 # Exclude these samples from the data
-prepped.data <- prepped.data %>% dplyr::select(batch.info[, 1])
+prepped.data <- prepped.data %>% dplyr::select("gene", batch.info[, 1])
 
 # Look at a preview of what this looks like
 head(batch.info)
+```
+```{r Filter metadata to match}
+# Only keep metadata for samples in the set
+geo.meta <- geo.meta[match(colnames(prepped.data)[-1], geo.meta$geo_accession), ]
+
+# Preview what metadata looks like
+head(geo.meta)
 ```
 
 ### Write data file in the format ASAP will take.
@@ -90,7 +102,7 @@ what you have used in a drop down menu on ASAP.
 ```{r Write data file}
 # Write a copy of the counts in the normalized data file
 readr::write_tsv(prepped.data, file.path("darmanis_data", "normalized_darmanis",
-                                         "darmanis_counts.tab"))
+                                         "counts_darmanis.tsv"))
 ```
 
 ### Write batch file in same type of format
@@ -99,7 +111,12 @@ readr::write_tsv(prepped.data, file.path("darmanis_data", "normalized_darmanis",
 readr::write_tsv(data.frame(batch.info), 
                  file.path("darmanis_data", "batch.info.txt"))
 ```
-
+### Write metadata info to be used later
+```{r Write batch file}
+# Write metadata file for subsequent testing
+geo.meta %>% dplyr::select("cell.type.ch1", "plate.id.ch1") %>%
+             readr::write_tsv(file.path("darmanis_data", "metadata.tsv"))
+```
 Session info:
 ```{r}
 sessionInfo()
