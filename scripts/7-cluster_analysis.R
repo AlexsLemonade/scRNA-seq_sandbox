@@ -14,7 +14,7 @@
 
 # Command line example:
 #
-# Rscript scripts/4b-dim_reduction_analysis.R \
+# Rscript scripts/7-cluster_analysis.R \
 # -d data/gene_matrix.tsv \
 # -m metadata.tsv \
 # -o results \
@@ -33,8 +33,8 @@ library(optparse)
 #--------------------------------Set up options--------------------------------#
 option_list <- list(
   make_option(opt_str = c("-d", "--data"), type = "character", default = getwd(),
-              help = "Directory path to folder of dataset(s) of gene matrices in
-              tsv format, gene x sample to test.",
+              help = "Directory path to folder of dataset(s) of gene matrices 
+              (probably dimension reduced) in tsv format, gene x sample to test.",
               metavar = "character"),
   make_option(opt_str = c("-m", "--metadata"), type = "character",
               default = "none", help = "Path to metadata file that contains 
@@ -50,6 +50,17 @@ option_list <- list(
 
 # Parse options
 opt <- parse_args(OptionParser(option_list = option_list))
+
+# Create the output for results folder if it does not exist
+if (!dir.exists(opt$output)) {
+  message(paste("Output folder:", opt$output, "does not exist, creating one"))
+  dir.create(opt$output)
+}
+
+# Append an underscore to the label if it is given
+if (opt$label != "") {
+  opt$label <- paste0("_", opt$label)
+}
 
 #---------------------------------Read in data---------------------------------#
 # Get the file names of all the normalized files
@@ -108,18 +119,25 @@ lapply(meta, function(meta.var) {
   # Plot cluster statistics on a boxplot
   # Melt the  list into one data.frame
   cluster.results.df <- reshape::melt(cluster.results)
-
+  
+  # Put more sensible colnames
+  colnames(cluster.results.df) <- c("stat", "value", "dataset")
+  
+  # Save these data to a tsv 
+  readr::write_tsv(cluster.results.df, 
+                   file.path(opt$output, paste0(variable.name, opt$label, ".tsv")))
+  
   # Make the plot
   cluster.stats.plot <- ggplot(data = cluster.results.df, 
-                               aes(x = L1, y = value, fill = variable)) +
+                               aes(x = dataset, y = value, fill = stat)) +
     geom_boxplot(position = position_dodge()) + 
     xlab("Normalization method") +
-    facet_wrap(~variable)
+    facet_wrap(~stat)
 
   # Save plots to png
   ggplot2::ggsave(plot = cluster.stats.plot,
-                  file.path(opt$output, paste0(opt$label, "_", variable.name,
-                                               "_plots.png")), 
+                  file.path(opt$output, paste0(variable.name, opt$label,
+                                               "_cluster_stats_barplots.png")), 
                   width = 10)
                 
 })

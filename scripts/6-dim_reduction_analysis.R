@@ -16,7 +16,7 @@
 
 # Command line example:
 #
-# Rscript scripts/4b-dim_reduction_analysis.R \
+# Rscript scripts/6-dim_reduction_analysis.R \
 # -d data/gene_matrix.tsv \
 # -m metadata.tsv \
 # -r pca \
@@ -69,6 +69,11 @@ if (!(opt$reduce %in% c("tnse", "pca", "umap"))){
 if (!dir.exists(opt$output)) {
   message(paste("Output folder:", opt$output, "does not exist, creating one"))
   dir.create(opt$output)
+}
+
+# Append an underscore to the label if it is given
+if (opt$label != "") {
+  opt$label <- paste0("_", opt$label)
 }
 
 #---------------------------------Read in data---------------------------------#
@@ -124,8 +129,8 @@ dim.red.data <- lapply(datasets, function(dataset) {
     
   # Save these dimensions to a tsv file with their dataset name
   readr::write_tsv(dim.red, 
-                   file.path(opt$output, paste0(opt$reduce, "_", opt$label, 
-                                                "_", set.name, ".tsv")))
+                   file.path(opt$output, paste0(opt$reduce, opt$label, "_",
+                                                set.name, ".tsv")))
 })
 
 #-----------------------Plot with metadata variable labels---------------------#
@@ -159,12 +164,12 @@ for (variable in 1:length(meta)) {
 
   # Put all plots and legend together
   main.plot <- cowplot::plot_grid(cowplot::plot_grid(plotlist = metadata.plots,
-                                                    ncol = 2, align='hv'),
+                                                    ncol = 2, align = 'hv'),
                                   cowplot::plot_grid(NULL, legend, ncol = 2),
                                   rel_widths=c(1, 0.2))
 
   # Save to png
   ggplot2::ggsave(plot = main.plot, 
-                  file.path(opt$output, paste0(opt$label, "_", opt$reduce, "_",
+                  file.path(opt$output, paste0(opt$reduce, opt$label, "_",
                                                variable.names[variable], ".png")))
 }
