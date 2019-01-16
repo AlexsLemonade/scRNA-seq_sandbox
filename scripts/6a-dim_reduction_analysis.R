@@ -59,7 +59,6 @@ option_list <- list(
 opt <- parse_args(OptionParser(option_list = option_list))
 
 #--------------------------------Set up options--------------------------------#
-
 opt$metadata <- file.path("darmanis_data", "metadata.tsv")
 opt$data <- file.path("darmanis_data", "normalized_darmanis")
 opt$label <- ""
@@ -98,26 +97,30 @@ names(datasets) <- gsub("\\..*$", "", dataset.names)
 # Run dimension reduction on each dataset and extract x and y coordinates
 dim.red.data <- lapply(datasets, function(dataset) {
     
+  # Remove gene column, keep only data
+  dataset <- dataset[, -grep('gene', colnames(dataset), ignore.case = TRUE)]
+  
   # Extract sample names
-  samples <- colnames(dataset)[-1]
-    
+  samples <- colnames(dataset)
+  
+  # Run the dimension reduction technique
   if (opt$reduce == "tsne") {
     # Run tsne
-    dim.red <- Rtsne::Rtsne(t(dataset[,-1]), check_duplicates = FALSE)
+    dim.red <- Rtsne::Rtsne(t(dataset), check_duplicates = FALSE)
   
     # Only keep the dimension coordinates
     dim.red <- data.frame(dim.red$Y)
   }
   if (opt$reduce == "pca") {
-    # Run tsne
-    dim.red <- prcomp(t(dataset[,-1]))
+    # Run pca
+    dim.red <- prcomp(t(dataset))
       
     # Only keep the scores for first two PCs
     dim.red <- data.frame(dim.red$x[, 1:2])
   }
   if (opt$reduce == "umap") {
-    # Run tsne
-    dim.red <- umap::umap(t(dataset[,-1]))
+    # Run umap
+    dim.red <- umap::umap(t(dataset))
       
     # Only keep the dimension coordinates
     dim.red <- data.frame(dim.red$Y)

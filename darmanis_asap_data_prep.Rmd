@@ -98,7 +98,7 @@ what you have used in a drop down menu on ASAP.
 ```{r Write data file}
 # Write a copy of the counts in the normalized data file
 readr::write_tsv(prepped.data, file.path("darmanis_data", "normalized_darmanis",
-                                         "darmanis_counts.tab"))
+                                         "counts_darmanis.tsv"))
 ```
 
 ### Write batch file in same type of format
