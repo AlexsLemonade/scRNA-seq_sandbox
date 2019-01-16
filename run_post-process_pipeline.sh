@@ -4,10 +4,8 @@
 
 # Purpose: running the post-processing steps for single cell RNA-seq data.
 
-# Change your directory name, GEO ID, and SRP here. Then run the script.
+# Change your directory name, and desired label here. Then run the script.
 dir=darmanis_data
-GSE=GSE84465
-SRP=SRP079058
 label=darmanis
 
 #-------------------------------Run normalization------------------------------#
