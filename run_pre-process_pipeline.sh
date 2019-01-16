@@ -86,3 +86,13 @@ Rscript scripts/pre-processing/3-make_gene_matrix.R \
   -o ${dir} \
   -m 0.5 \
   -l ${dir}
+
+#---------------------------Prep the data with this Rmd------------------------#
+Rscript -e "rmarkdown::render('darmanis_data_prep.Rmd')"
+
+#-------------------------------Run normalization------------------------------#
+Rscript scripts/5-run_normalization.R \
+  -d ${dir}/normalized_${label}/counts_${label}.tsv \
+  -a all \
+  -o ${dir}/normalized_${label} \
+  -l ${label}

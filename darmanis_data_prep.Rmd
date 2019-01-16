@@ -1,14 +1,25 @@
 ---
+<<<<<<< HEAD
 title: "Darmanis_ASAP_data_prep"
+=======
+title: "Darmanis_data_prep"
+>>>>>>> 268ad946d2caf0a5571ee50cf26da8af2f800be0
 author: "C. Savonen, CCDL for ALSF"
 date: "12/6/2018"
 output: html_document
 ---
 
+<<<<<<< HEAD
 ## Purpose: Prep data for use in post-processing pipeline or in 
 [ASAP online](https://asap.epfl.ch/)
 ```{r Import functions}
 source(file.path("scripts", "util", "data_prep_functions.R"))
+=======
+## Purpose: Prep data for normalization by `5-run_normalization.R` or for use in
+[ASAP online](https://asap.epfl.ch/)
+```{r Import functions}
+source(file.path("scripts", "util", "asap_prep_functions.R"))
+>>>>>>> 268ad946d2caf0a5571ee50cf26da8af2f800be0
 
 # Magrittr pipe
 `%>%` <- dplyr::`%>%`
@@ -48,6 +59,7 @@ colnames(data) <- dplyr::recode(colnames(data), !!!convert.key)
 geo.meta <- geo.meta[match(colnames(data)[-1], geo.meta$geo_accession), ]
 ```
 
+<<<<<<< HEAD
 ### Filtering genes and samples
 Filter out genes that don't have at least one count in 1% of cells and filter out 
 samples that don't express at least 100 genes. This function assumes the first 
@@ -55,16 +67,31 @@ column holds the genes.
 ```{r Filter out genes}
 prepped.data <- GeneMatrixFilter(data, min_counts = 1, perc_genes = 0.01,
                                  num_genes = 100)
+=======
+### ASAP only likes round numbers for the counts
+Filter out genes that don't have at least one count in 1% of cells and filter out
+samples that don't express at least 100 genes. This function assumes the first column
+holds the genes
+```{r Filter out genes}
+prepped.data <- AsapFilter(data, min_counts = 1, perc_genes = 0.01,
+                           num_genes = 100)
+>>>>>>> 268ad946d2caf0a5571ee50cf26da8af2f800be0
 ```
 
 ```{r Filter metadata to match}
 # Only keep metadata for samples in the set
 geo.meta <- geo.meta[match(colnames(prepped.data)[-1], geo.meta$geo_accession), ]
 ```
+<<<<<<< HEAD
 
 ### Make batch file
 In this case we will use the plate ids. 
 If using ASAP, need the first column to be the sample IDs that match your sample data file
+=======
+### Make batch file for ASAP to correct batches by.
+In this case we will use the plate ids. 
+ASAP wants the first column to be the sample IDs that match your sample data file
+>>>>>>> 268ad946d2caf0a5571ee50cf26da8af2f800be0
 and the second column to be the corresponding batch the sample belongs to. 
 I am excluding small batches here because they are difficult/impossible to evaluate 
 for the purposes of clustering evaluations.
@@ -75,7 +102,11 @@ batch.info <- cbind(geo.meta$geo_accession, geo.meta$plate.id.ch1)
 
 # Let's exclude batches of 2 or less
 batch.sum <- summary(as.factor(batch.info[, 2]))
+<<<<<<< HEAD
 batch.small <- names(batch.sum)[which(batch.sum <= 1)]
+=======
+batch.small <- names(batch.sum)[which(batch.sum <= 2)]
+>>>>>>> 268ad946d2caf0a5571ee50cf26da8af2f800be0
 
 # Make a regex statement to exclude these batches of one
 regex <- paste0(paste0("^", batch.small, "$"), collapse = "|")
@@ -90,6 +121,12 @@ head(batch.info)
 ```{r Filter metadata to match}
 # Only keep metadata for samples in the set
 geo.meta <- geo.meta[match(colnames(prepped.data)[-1], geo.meta$geo_accession), ]
+<<<<<<< HEAD
+=======
+
+# Preview what metadata looks like
+head(geo.meta)
+>>>>>>> 268ad946d2caf0a5571ee50cf26da8af2f800be0
 ```
 
 ### Write data file in the format ASAP will take.
@@ -103,26 +140,37 @@ readr::write_tsv(prepped.data, file.path("darmanis_data", "normalized_darmanis",
                                          "counts_darmanis.tsv"))
 ```
 
+<<<<<<< HEAD
 ### Make batch file if you want to correct by batches
 In this case we will use the plate ids. 
 If using ASAP, need the first column to be the sample IDs that match your sample 
 data file and the second column to be the corresponding batch the sample belongs to.
+=======
+### Write batch file in same type of format
+>>>>>>> 268ad946d2caf0a5571ee50cf26da8af2f800be0
 ```{r Write batch file}
 # Write batch info file for ASAP use
 readr::write_tsv(data.frame(batch.info), 
                  file.path("darmanis_data", "batch.info.txt"))
 ```
+<<<<<<< HEAD
 
 ### Write metadata info to be used later
 Keep only the metadata of interest (ones you would like to use to get clustering
 statistics) in this file. Ideally you would test something biological like 
 cell type and then something technical, like batch.
+=======
+### Write metadata info to be used later
+>>>>>>> 268ad946d2caf0a5571ee50cf26da8af2f800be0
 ```{r Write batch file}
 # Write metadata file for subsequent testing
 geo.meta %>% dplyr::select("cell.type.ch1", "plate.id.ch1") %>%
              readr::write_tsv(file.path("darmanis_data", "metadata.tsv"))
 ```
+<<<<<<< HEAD
 
+=======
+>>>>>>> 268ad946d2caf0a5571ee50cf26da8af2f800be0
 Session info:
 ```{r}
 sessionInfo()
