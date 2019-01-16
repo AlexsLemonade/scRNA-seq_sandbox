@@ -145,7 +145,7 @@ lapply(meta, function(meta.var) {
   cluster.stats.plot <- ggplot(data = cluster.results.df, 
                                aes(x = dataset, y = value, fill = stat)) +
     geom_boxplot(position = position_dodge()) + 
-    theme(axis.text.x = element_text(angle = 90, hjust = 1))
+    theme(axis.text.x = element_text(angle = 90, hjust = 1)) +
     xlab("Normalization method") +
     facet_wrap(~stat)
 

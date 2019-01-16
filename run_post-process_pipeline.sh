@@ -13,14 +13,14 @@ label=darmanis
 Rscript -e "rmarkdown::render('darmanis_data_prep.Rmd')"
 
 #-------------------------------Run normalization------------------------------#
-Rscript scripts/post-processing/5-run_normalization.R \
+Rscript scripts/post-processing/1-run_normalization.R \
   -d ${dir}/normalized_${label}/counts_${label}.tsv \
   -a all \
   -o ${dir}/normalized_${label} \
   -l ${label}
 
 #------------------------------Dimension reduction-----------------------------#
-Rscript scripts/post-processing/6-dim_reduction_analysis.R \
+Rscript scripts/post-processing/2-dim_reduction_analysis.R \
   -d ${dir}/normalized_${label} \
   -m ${dir}/metadata.tsv \
   -r pca \
@@ -28,7 +28,7 @@ Rscript scripts/post-processing/6-dim_reduction_analysis.R \
   -o results/pca_${label} 
   
 #------------------------------Clustering analysis-----------------------------#
-Rscript scripts/post-processing/7-cluster_analysis.R \
+Rscript scripts/post-processing/3-cluster_analysis.R \
   -d results/pca_${label} \
   -m ${dir}/metadata.tsv \
   -l ${label} \
