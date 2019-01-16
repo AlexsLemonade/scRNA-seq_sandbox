@@ -8,7 +8,7 @@ output: html_document
 ## Purpose: Prep data for use in post-processing pipeline or in 
 [ASAP online](https://asap.epfl.ch/)
 ```{r Import functions}
-source(file.path("scripts", "util", "asap_prep_functions.R"))
+source(file.path("scripts", "util", "data_prep_functions.R"))
 
 # Magrittr pipe
 `%>%` <- dplyr::`%>%`
