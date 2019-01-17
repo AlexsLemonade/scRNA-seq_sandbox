@@ -53,7 +53,7 @@ option_list <- list(
   make_option(opt_str = c("-l", "--label"), type = "character",
               default = "", help = "Optional label for output files",
               metavar = "character")
-  )
+)
 
 # Parse options
 opt <- parse_args(OptionParser(option_list = option_list))
@@ -62,7 +62,7 @@ opt <- parse_args(OptionParser(option_list = option_list))
 # Check that the dimension reduction option given is supported
 if (!(opt$reduce %in% c("tnse", "pca", "umap"))){
   stop("That is not a dimension reduction technique supported by this script. 
-       Check for typos. Acceptable options:'tsne', 'pca', or 'umap'")
+       Check for typos. Acceptable options: 'tsne', 'pca', or 'umap'")
 }
 
 # Create the output for results folder if it does not exist
@@ -90,15 +90,19 @@ dataset.names <- dir(opt$data)
 names(datasets) <- gsub("\\..*$", "", dataset.names)
 
 #-------------------------------Dimension Reduction----------------------------#
-# Run dimension reduction on each dataset and extract x and y coordinates
+# Run dimension reduction on each gene expression dataset and extract x and y 
+# coordinates
+# Although a typical gene expression matrix consists of rows being genes and
+# columns being samples, these methods generally assume columns to be the different
+# features, so the data are transposed in order to obtain values for each sample. 
 dim.red.data <- lapply(datasets, function(dataset) {
   
   # Find if there's a gene column so we can get rid of it
   gene.col <- grep("gene", colnames(dataset), ignore.case = TRUE)
   
   if (length(gene.col > 0 )) {
-  # Make dataset the data only
-  dataset <- dataset[, -gene.col]
+    # Make dataset the data only
+    dataset <- dataset[, -gene.col]
   }
   
   # Extract sample names

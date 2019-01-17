@@ -75,7 +75,7 @@ batch.info <- cbind(geo.meta$geo_accession, geo.meta$plate.id.ch1)
 
 # Let's exclude batches of 2 or less
 batch.sum <- summary(as.factor(batch.info[, 2]))
-batch.small <- names(batch.sum)[which(batch.sum <= 1)]
+batch.small <- names(batch.sum)[which(batch.sum <= 2)]
 
 
 # Make a regex statement to exclude these batches of one

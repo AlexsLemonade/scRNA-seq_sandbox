@@ -176,7 +176,7 @@ for (algorithm in opt$algorithm) {
         "\n\n results file:", output.file)
     
     # Save normalized data to a tsv file
-    data.out <- data.frame("genes" = genes, data.out)
+    data.out <- data.frame(genes, data.out)
     
     # Save normalized data to a tsv file
     readr::write_tsv(data.out, output.file)

@@ -10,7 +10,10 @@
 #        prefer to explicitly list the files to be read in, separate file paths/names
 #        with a space. eg "pca_dataset_1.tsv pca_dataset_2.tsv"
 # "-m" : Path to metadata file that contains only the metadata variables you 
-#        wish to test and label by.
+#        wish to test and label by. Should be in same order as the samples. 
+#        Generally expected to be variables cleaned up from GEO metadata, but
+#        other types of metadata in a tsv also work. This script will assume 
+#        the metadata comes with column names.  
 # "-o" : Directory where you would like the output to go. Default is current 
 #        directory
 # "-l" : Optional label for output files. 
@@ -41,7 +44,9 @@ option_list <- list(
               metavar = "character"),
   make_option(opt_str = c("-m", "--metadata"), type = "character",
               default = "none", help = "Path to metadata file that contains 
-              only the metadata variables you wish to test and label by.",
+              only the metadata variables you wish to test and label by. Typically
+              expected to be metadata from GEO but other categorizations of data
+              in a tsv format, in the same order as the samples work.",
               metavar = "character"),
   make_option(opt_str = c("-o", "--output"), type = "character",
               default = getwd(), help = "Directory where you would like the
@@ -89,6 +94,8 @@ names(datasets) <- gsub("\\..*$", "", dataset.names)
 
 #-------------------------------Set up metadata--------------------------------#
 # Read in the metadata
+# This script is generally built on these metadata being from GEO metadata
+# files. 
 meta <- as.list(readr::read_tsv(opt$metadata))
 
 # Make all the metadata into factors
@@ -131,7 +138,7 @@ lapply(meta, function(meta.var) {
 
   # Plot cluster statistics on a boxplot
   # Melt the  list into one data.frame
-  cluster.results.df <- reshape::melt(cluster.results)
+  cluster.results.df <- reshape2::melt(cluster.results)
   
   # Put more sensible colnames
   colnames(cluster.results.df) <- c("stat", "value", "dataset")
