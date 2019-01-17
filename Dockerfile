@@ -88,6 +88,14 @@ ENV SALMON_VERSION 0.9.1
 
 WORKDIR /home
 
+# installing cellRanger 
+RUN curl -o cellranger-3.0.2.tar.gz "http://cf.10xgenomics.com/releases/cell-exp/cellranger-3.0.2.tar.gz?Expires=1547783967&Policy=eyJTdGF0ZW1lbnQiOlt7IlJlc291cmNlIjoiaHR0cDovL2NmLjEweGdlbm9taWNzLmNvbS9yZWxlYXNlcy9jZWxsLWV4cC9jZWxscmFuZ2VyLTMuMC4yLnRhci5neiIsIkNvbmRpdGlvbiI6eyJEYXRlTGVzc1RoYW4iOnsiQVdTOkVwb2NoVGltZSI6MTU0Nzc4Mzk2N319fV19&Signature=AzHE9HfWkBgaB9USR9Xumx2Smc7dRwv0NlnTBu6zvnlNpnkET09vm5-SgHOQlPbb4Ga-iZfKzZAm6CnpROmWKhG-TxSOagFnApG10NQJ6HjSzWU6ODvrsO6PQD5ROpMKT4ZmFoYBpxuz4jjcbUa0qgeK220qrbwO3U9bU1kDrI-qhWO3RQSRULVHeiPA4Dc01xEvYKHh7Q2L3a2pdhAlwI5AErxr3H-AddBunZOkXog4FgyW0PaL37iHhhkYaDdLv2QmbRqM1QgKZXYRSZBf4esp8Y46uDhwzS-vYA-fSgoGIAgPUt8AZNLBTedhPsF2NJvGGsek6DznZ9Dv557eZA__&Key-Pair-Id=APKAI7S6A5RYOXBWRPDA" && \
+curl -O http://cf.10xgenomics.com/supp/cell-exp/ && \
+refdata-cellranger-GRCh38-3.0.0.tar.gz && \
+export PATH=/opt/cellranger-3.0.2:$PATH
+
+
+
 RUN apt update && \
     apt install -y --no-install-recommends ${PACKAGES} && \
     apt clean
