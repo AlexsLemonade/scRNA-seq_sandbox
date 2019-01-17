@@ -94,8 +94,6 @@ curl -O http://cf.10xgenomics.com/supp/cell-exp/ && \
 refdata-cellranger-GRCh38-3.0.0.tar.gz && \
 export PATH=/opt/cellranger-3.0.2:$PATH
 
-
-
 RUN apt update && \
     apt install -y --no-install-recommends ${PACKAGES} && \
     apt clean
