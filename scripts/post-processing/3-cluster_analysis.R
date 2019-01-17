@@ -80,7 +80,7 @@ if (dir.exists(opt$data)) { # If directory is given, read all tsv files
   dataset.files <- grep("\\.tsv$", dataset.files, value = TRUE)
   
 } else { # Otherwise, make file list by separating by spaces
-  dataset.files <- opt$data <- strsplit(opt$data, " ")
+  dataset.files <- strsplit(opt$data, " ")
 }
 
 # Read in each of the normalization files
