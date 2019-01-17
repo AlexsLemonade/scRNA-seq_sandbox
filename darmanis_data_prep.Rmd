@@ -1,9 +1,5 @@
 ---
-<<<<<<< HEAD
-title: "Darmanis_ASAP_data_prep"
-=======
 title: "Darmanis_data_prep"
->>>>>>> 268ad946d2caf0a5571ee50cf26da8af2f800be0
 author: "C. Savonen, CCDL for ALSF"
 date: "12/6/2018"
 output: html_document
