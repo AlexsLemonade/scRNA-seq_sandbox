@@ -1,8 +1,16 @@
 # scRNA-seq_workflow
 
-## How to use the scripts in this repository: 
-Assuming you have docker installed already on your computer. Follow these steps to run this. Open up command line (Terminal or what have you). 
+## About the scripts in this repository: 
 
+### 1) Pre-processing pipeline: 
+For starting from scratch with an experiment ID or set of SRA's you would like to process into a counts gene matrix file.
+
+### 2) Post-processing pipeline:
+For starting from counts gene matrix data file that you would like to normalize and do further analyses on. 
+
+## Step 0: Set up docker image
+For either pipeline, first clone the repository and then set up the docker image to work from:
+Assuming you have docker installed already on your computer. Follow these steps to run this. Open up command line (Terminal or what have you). 
 ### 1. Build a docker image with the Dockerfile and create a container
 ``` bash
 $ docker build -< Dockerfile -t <DESIRED_IMAGE_TAG_HERE>
@@ -20,15 +28,48 @@ It will be something like "a1b23c45" (a jumble of lower case letters and numbers
 ```bash
 $ docker exec -it <CONAINER_ID> bash
 ```
-### 4. Run the pipeline to process the data with salmon and create a data matrix.RDS file 
+
+## 1) Pre-processing pipeline: 
+For starting from scratch with an experiment ID or set of SRA's you would like to process into a counts gene matrix file.
+
+### Step 1. Open `run_pre-processing_pipeline.sh` and change the variables to the dataset you 
+are working with OR keep this the same and follow this example's dataset.
+```
+#Change your directory name, GEO ID, and SRP here. Then run the script.
+dir=darmanis_data
+GSE=GSE84465
+SRP=SRP079058
+label=darmanis
+```
+
+### Step 2. Run the pipeline to process the data with salmon and tximport to create a gene matrix file 
+Depending on how many samples are in the dataset this will take an hour or days (if you have thousands of samples)
 ```bash
 $ cd <PATH_TO_THE_CLONED_REPOSITORY>  
-$ bash run_pipeline.sh
+$ bash run_pre-processing_pipeline.sh
 ```
-### 5. Open up Rstudio and run Rmd with the post processing analyses you wish to run
-Go to your internet browser and enter: `localhost:8787`
-In Rstudio, open up one of these and follow along: 
 
-- *seurat_data_processing.Rmd* - takes you through the beginning steps of [Seurat](https://satijalab.org/seurat/get_started.html) pipeline QC.  
-- *tSNE_and_PCA.Rmd* - Runs tSNE and PCA and labels it with metadata to do initial clustering analysis . 
-- *asap_data_prep.Rmd* - Makes data into a format that ASAP will take. [ASAP](https://ASAP.epfl.ch) has a gui with a pipeline with a lot of different options.   
+### Step 3. Open up Rstudio and prep the data for post-processing
+To open Rstudio in docker, go to your internet browser and enter: `localhost:8787`
+Follow the example in `darmanis_data_prep.Rmd` to set up data.
+
+
+## 2) Post-processing pipeline: 
+For starting from counts gene matrix data file that you would like to normalize and do further analyses on. 
+
+### Step 1.  Open up Rstudio and prep the data for post-processing
+To open Rstudio in docker, go to your internet browser and enter: `localhost:8787`
+Follow the example in `darmanis_data_prep.Rmd` to set up data.
+
+### Step 2.  Open `run_post-processing_pipeline.sh` and change the variables to the dataset you 
+are working with OR keep this the same and follow this example's dataset.
+```bash
+dir=darmanis_data
+label=darmanis
+```
+
+### Step 3. Run the pipeline
+```bash
+$ cd <PATH_TO_THE_CLONED_REPOSITORY>  
+$ bash run_post-processing_pipeline.sh
+```

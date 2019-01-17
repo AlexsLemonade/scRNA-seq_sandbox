@@ -72,15 +72,6 @@ if (!dir.exists(opt$output)) {
     dir.create(opt$output)
 }
 
-# Find which column has gene info
-gene.col <- grep("gene", colnames(dataset), ignore.case = TRUE)
-
-# Create the output for results folder if it does not exist
-if (length(gene.col) < 1) {
-  stop("Error: Cannot find a column with gene info. (Looking for 'gene' as 
-        column name")
-}
-
 # Append an underscore to the label if it is given
 if (opt$label != "") {
   opt$label <- paste0("_", opt$label)
@@ -107,6 +98,15 @@ if (any(is.na(match(opt$algorithm, all.algorithms)))) {
 #----------------------------------Load data-----------------------------------#
 # Read in a tsv file of data
 dataset <- readr::read_tsv(opt$data)
+
+# Find which column has gene info
+gene.col <- grep("gene", colnames(dataset), ignore.case = TRUE)
+
+# Create the output for results folder if it does not exist
+if (length(gene.col) < 1) {
+  stop("Error: Cannot find a column with gene info. (Looking for 'gene' as 
+       column name")
+}
 
 # Separate genes from the numeric data
 genes <- dataset[, gene.col]
@@ -176,7 +176,7 @@ for (algorithm in opt$algorithm) {
         "\n\n results file:", output.file)
     
     # Save normalized data to a tsv file
-    data.out <- data.frame("genes" = genes, data.out)
+    data.out <- data.frame(genes, data.out)
     
     # Save normalized data to a tsv file
     readr::write_tsv(data.out, output.file)

@@ -2,10 +2,9 @@
 # 2018
 #
 # These functions are used for prepping tximport counts data into a filtered
-# dataset that is ready for normalization either by run_normalization.R or by
-# uploading to [ASAP online](https://asap.epfl.ch/)
+# dataset that is ready for uploading to [ASAP online](https://asap.epfl.ch/)
 
-AsapFilter <- function(data, min_counts = 1, perc_genes = 0.01, num_genes = 100) {
+GeneMatrixFilter <- function(data, min_counts = 1, perc_genes = 0.01, num_genes = 100) {
     # This function is filters and makes data into ASAP format and assumes gene info
     # is the first column
     # Args:

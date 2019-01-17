@@ -37,7 +37,7 @@ fi
 #--------------------------- Download fastq data-------------------------------#
 # Note: because running all ~3800 samples takes quite a bit of time, use -n option
 # to set what number of randomly selected samples you would like
-Rscript scripts/0-get_sample_download_list.R \
+Rscript scripts/pre-processing/0-get_sample_download_list.R \
   -i ${SRP} \
   -o results \
   -d ${dir}/salmon_quants \
@@ -50,7 +50,7 @@ cd ${dir}
 for line in `cat ../results/files.to.download.txt`
   do
   # Download forward and reverse fastq files
-  Rscript ../scripts/1-download_sra.R \
+  Rscript ../scripts/pre-processing/1-download_sra.R \
     -s $line \
     -q ../ref_files/SRAmetadb.sqlite \
     -d raw_data
@@ -76,23 +76,13 @@ done
 #-------------------------Obtain summary report of fastqc:---------------------#
 cd ..
 
-Rscript scripts/2-get_fastqc_reports.R \
+Rscript scripts/pre-processing/2-get_fastqc_reports.R \
   -d ${dir}/fastqc_reports \
   -o results
 
 #-------------Make a gene matrix out of the Salmon quantification data---------#
-Rscript scripts/3-make_gene_matrix.R \
+Rscript scripts/pre-processing/3-make_gene_matrix.R \
   -d ${dir}/salmon_quants \
   -o ${dir} \
   -m 0.5 \
   -l ${dir}
-
-#---------------------------Prep the data with this Rmd------------------------#
-Rscript -e "rmarkdown::render('darmanis_data_prep.Rmd')"
-
-#-------------------------------Run normalization------------------------------#
-Rscript scripts/5-run_normalization.R \
-  -d ${dir}/normalized_${label}/counts_${label}.tsv \
-  -a all \
-  -o ${dir}/normalized_${label} \
-  -l ${label}

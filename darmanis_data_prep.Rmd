@@ -5,10 +5,10 @@ date: "12/6/2018"
 output: html_document
 ---
 
-## Purpose: Prep data for normalization by `5-run_normalization.R` or for use in
+## Purpose: Prep data for use in post-processing pipeline or in 
 [ASAP online](https://asap.epfl.ch/)
 ```{r Import functions}
-source(file.path("scripts", "util", "asap_prep_functions.R"))
+source(file.path("scripts", "util", "data_prep_functions.R"))
 
 # Magrittr pipe
 `%>%` <- dplyr::`%>%`
@@ -48,22 +48,23 @@ colnames(data) <- dplyr::recode(colnames(data), !!!convert.key)
 geo.meta <- geo.meta[match(colnames(data)[-1], geo.meta$geo_accession), ]
 ```
 
-### ASAP only likes round numbers for the counts
-Filter out genes that don't have at least one count in 1% of cells and filter out
-samples that don't express at least 100 genes. This function assumes the first column
-holds the genes
+### Filtering genes and samples
+Filter out genes that don't have at least one count in 1% of cells and filter out 
+samples that don't express at least 100 genes. This function assumes the first 
+column holds the genes.
 ```{r Filter out genes}
-prepped.data <- AsapFilter(data, min_counts = 1, perc_genes = 0.01,
-                           num_genes = 100)
+prepped.data <- GeneMatrixFilter(data, min_counts = 1, perc_genes = 0.01,
+                                 num_genes = 100)
 ```
 
 ```{r Filter metadata to match}
 # Only keep metadata for samples in the set
 geo.meta <- geo.meta[match(colnames(prepped.data)[-1], geo.meta$geo_accession), ]
 ```
-### Make batch file for ASAP to correct batches by.
+
+### Make batch file
 In this case we will use the plate ids. 
-ASAP wants the first column to be the sample IDs that match your sample data file
+If using ASAP, need the first column to be the sample IDs that match your sample data file
 and the second column to be the corresponding batch the sample belongs to. 
 I am excluding small batches here because they are difficult/impossible to evaluate 
 for the purposes of clustering evaluations.
@@ -75,6 +76,7 @@ batch.info <- cbind(geo.meta$geo_accession, geo.meta$plate.id.ch1)
 # Let's exclude batches of 2 or less
 batch.sum <- summary(as.factor(batch.info[, 2]))
 batch.small <- names(batch.sum)[which(batch.sum <= 2)]
+
 
 # Make a regex statement to exclude these batches of one
 regex <- paste0(paste0("^", batch.small, "$"), collapse = "|")
@@ -89,23 +91,19 @@ head(batch.info)
 ```{r Filter metadata to match}
 # Only keep metadata for samples in the set
 geo.meta <- geo.meta[match(colnames(prepped.data)[-1], geo.meta$geo_accession), ]
-
-# Preview what metadata looks like
-head(geo.meta)
 ```
 
-### Write data file in the format ASAP will take.
-ASAP wants a typical gene by column gene expression matrix with samples with 
-the column names and the first column being the gene names.
-You can use other forms of separation other than "/t" but will need to specify
-what you have used in a drop down menu on ASAP. 
+### Write counts data file
 ```{r Write data file}
 # Write a copy of the counts in the normalized data file
 readr::write_tsv(prepped.data, file.path("darmanis_data", "normalized_darmanis",
                                          "counts_darmanis.tsv"))
 ```
 
-### Write batch file in same type of format
+### Make batch file if you want to correct by batches
+In this case we will use the plate ids. 
+If using ASAP, need the first column to be the sample IDs that match your sample 
+data file and the second column to be the corresponding batch the sample belongs to.
 ```{r Write batch file}
 # Write batch info file for ASAP use
 readr::write_tsv(data.frame(batch.info), 
@@ -117,6 +115,7 @@ readr::write_tsv(data.frame(batch.info),
 geo.meta %>% dplyr::select("cell.type.ch1", "plate.id.ch1") %>%
              readr::write_tsv(file.path("darmanis_data", "metadata.tsv"))
 ```
+
 Session info:
 ```{r}
 sessionInfo()

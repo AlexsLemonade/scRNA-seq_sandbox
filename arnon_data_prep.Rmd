@@ -1,14 +1,14 @@
 ---
-title: "Arnon_ASAP_data_prep"
+title: "Arnon_data_prep"
 author: "C. Savonen, CCDL for ALSF"
 date: "12/6/2018"
 output: html_document
 ---
 
-## Purpose: Prep data for normalization by `5-run_normalization.R` or for use in
+## Purpose: Prep data for use in post-processing pipeline or in 
 [ASAP online](https://asap.epfl.ch/)
 ```{r Import functions}
-source(file.path("scripts", "util", "asap_prep_functions.R"))
+source(file.path("scripts", "util", "data_prep_functions.R"))
 ```
 
 ```{r Import data}
@@ -30,13 +30,13 @@ if (file.exists(file.path("arnon_data", "meta_data.csv"))) {
 ```
 
 
-### ASAP only likes round numbers for the counts
+### Filtering genes and samples
 Filter out genes that don't have at least one count in 1% of cells and filter out 
 samples that don't express at least 100 genes. This function assumes the first 
 column holds the genes.
 ```{r Filter out genes}
-prepped.data <- AsapFilter(data, min_counts = 1, perc_genes = 0.01,
-                           num_genes = 100)
+prepped.data <- GeneMatrixFilter(data, min_counts = 1, perc_genes = 0.01,
+                                 num_genes = 100)
 ```
 
 ### Make sure the samples and the metadata are in the same order.
@@ -45,28 +45,22 @@ prepped.data <- AsapFilter(data, min_counts = 1, perc_genes = 0.01,
 geo.meta <- geo.meta[match(colnames(prepped.data)[-1], geo.meta$title), ]
 ```
 
-### Make batch file for ASAP to correct batches by.
+### Make batch file if you want to correct by batches
 In this case we will use the plate ids. 
-ASAP wants the first column to be the sample IDs that match your sample data file
-and the second column to be the corresponding batch the sample belongs to.
+If using ASAP, need the first column to be the sample IDs that match your sample 
+data file and the second column to be the corresponding batch the sample belongs to.
 ```{r Make batch info}
 batch.info <- cbind(geo.meta$geo_accession,
                     geo.meta$characteristics_ch1.2)
 head(batch.info)
 ```
 
-### Write data file in the format ASAP will take.
-ASAP wants a typical gene by column gene expression matrix with samples with 
-the column names and the first column being the gene names.
-You can use other forms of separation other than "/t" but will need to specify
-what you have used in a drop down menu on ASAP. 
+### Write counts data file
 ```{r Write data file}
 # Write a copy of the counts in the normalized data file
 readr::write_tsv(prepped.data, file.path("arnon_data", "normalized_arnon", 
                                          "counts_arnon.tsv"))
-
 ```
-
 ### Write batch file in same type of format
 ```{r Write batch file}
 # Write batch info file for ASAP use
@@ -74,6 +68,9 @@ readr::write_tsv(data.frame(batch.info), file.path("arnon_data",
                                                    "batch.info.txt"))
 ```
 ### Write metadata info to be used later
+Keep only the metadata of interest (ones you would like to use to get clustering
+statistics) in this file. Ideally you would test something biological like 
+cell type and then something technical, like batch.
 ```{r Write batch file}
 # Write metadata file for subsequent testing
 geo.meta %>% dplyr::select("cell.type.ch1", "characteristics_ch1.2") %>%
