@@ -79,24 +79,25 @@ RUN apt-get update && apt-get install -y --no-install-recommends libncurses5-dev
     cd samtools-1.3.1 && \
     make && make prefix=/usr/local/bin install
 
+# installing cellRanger 
+#RUN curl -o cellranger-3.0.2.tar.gz "http://cf.10xgenomics.com/releases/cell-exp/cellranger-3.0.2.tar.gz?Expires=1547783967&Policy=eyJTdGF0ZW1lbnQiOlt7IlJlc291cmNlIjoiaHR0cDovL2NmLjEweGdlbm9taWNzLmNvbS9yZWxlYXNlcy9jZWxsLWV4cC9jZWxscmFuZ2VyLTMuMC4yLnRhci5neiIsIkNvbmRpdGlvbiI6eyJEYXRlTGVzc1RoYW4iOnsiQVdTOkVwb2NoVGltZSI6MTU0Nzc4Mzk2N319fV19&Signature=AzHE9HfWkBgaB9USR9Xumx2Smc7dRwv0NlnTBu6zvnlNpnkET09vm5-SgHOQlPbb4Ga-iZfKzZAm6CnpROmWKhG-TxSOagFnApG10NQJ6HjSzWU6ODvrsO6PQD5ROpMKT4ZmFoYBpxuz4jjcbUa0qgeK220qrbwO3U9bU1kDrI-qhWO3RQSRULVHeiPA4Dc01xEvYKHh7Q2L3a2pdhAlwI5AErxr3H-AddBunZOkXog4FgyW0PaL37iHhhkYaDdLv2QmbRqM1QgKZXYRSZBf4esp8Y46uDhwzS-vYA-fSgoGIAgPUt8AZNLBTedhPsF2NJvGGsek6DznZ9Dv557eZA__&Key-Pair-Id=APKAI7S6A5RYOXBWRPDA" 
+#RUN curl -O http://cf.10xgenomics.com/supp/cell-exp/refdata-cellranger-GRCh38-3.0.0.tar.gz
+#RUN export PATH= /home/cellranger-3.0.2:$PATH
+
+
 ENV PACKAGES git gcc make g++ cmake libboost-all-dev liblzma-dev libbz2-dev \
     ca-certificates zlib1g-dev curl unzip autoconf
-ENV SALMON_VERSION 0.9.1
+ENV SALMON_VERSION 0.12.0
 
 # salmon binary will be installed in /home/salmon/bin/salmon
-# don't modify things below here for version updates etc.
+
+### don't modify things below here for version updates etc.
 
 WORKDIR /home
 
-# installing cellRanger 
-RUN curl -o cellranger-3.0.2.tar.gz "http://cf.10xgenomics.com/releases/cell-exp/cellranger-3.0.2.tar.gz?Expires=1547783967&Policy=eyJTdGF0ZW1lbnQiOlt7IlJlc291cmNlIjoiaHR0cDovL2NmLjEweGdlbm9taWNzLmNvbS9yZWxlYXNlcy9jZWxsLWV4cC9jZWxscmFuZ2VyLTMuMC4yLnRhci5neiIsIkNvbmRpdGlvbiI6eyJEYXRlTGVzc1RoYW4iOnsiQVdTOkVwb2NoVGltZSI6MTU0Nzc4Mzk2N319fV19&Signature=AzHE9HfWkBgaB9USR9Xumx2Smc7dRwv0NlnTBu6zvnlNpnkET09vm5-SgHOQlPbb4Ga-iZfKzZAm6CnpROmWKhG-TxSOagFnApG10NQJ6HjSzWU6ODvrsO6PQD5ROpMKT4ZmFoYBpxuz4jjcbUa0qgeK220qrbwO3U9bU1kDrI-qhWO3RQSRULVHeiPA4Dc01xEvYKHh7Q2L3a2pdhAlwI5AErxr3H-AddBunZOkXog4FgyW0PaL37iHhhkYaDdLv2QmbRqM1QgKZXYRSZBf4esp8Y46uDhwzS-vYA-fSgoGIAgPUt8AZNLBTedhPsF2NJvGGsek6DznZ9Dv557eZA__&Key-Pair-Id=APKAI7S6A5RYOXBWRPDA" && \
-curl -O http://cf.10xgenomics.com/supp/cell-exp/ && \
-refdata-cellranger-GRCh38-3.0.0.tar.gz && \
-export PATH=/opt/cellranger-3.0.2:$PATH
-
-RUN apt update && \
-    apt install -y --no-install-recommends ${PACKAGES} && \
-    apt clean
+RUN apt-get update && \
+    apt-get install -y --no-install-recommends ${PACKAGES} && \
+    apt-get clean
 
 RUN curl -k -L https://github.com/COMBINE-lab/salmon/archive/v${SALMON_VERSION}.tar.gz -o salmon-v${SALMON_VERSION}.tar.gz && \
     tar xzf salmon-v${SALMON_VERSION}.tar.gz && \
@@ -105,6 +106,12 @@ RUN curl -k -L https://github.com/COMBINE-lab/salmon/archive/v${SALMON_VERSION}.
     cd build && \
     cmake .. -DCMAKE_INSTALL_PREFIX=/usr/local && make && make install
 
-ENV PATH /home/salmon-${SALMON_VERSION}/bin:${PATH}
+# For dev version
+#RUN git clone https://github.com/COMBINE-lab/salmon.git && \
+#    cd salmon && \
+#    git checkout develop && \
+#    mkdir build && \
+#    cd build && \
+#    cmake .. -DCMAKE_INSTALL_PREFIX=/usr/local && make && make install
 
-RUN salmon --version
+ENV PATH /home/salmon-${SALMON_VERSION}/bin:${PATH}
