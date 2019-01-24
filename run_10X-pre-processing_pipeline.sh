@@ -42,7 +42,7 @@ for f in `ls *_R1_001.fastq.gz | sed 's/_R1_001.fastq.gz//' `
   do
   echo "Processing sample ${f}"
 
-  # Run Salmon
+  # Run Salmon with Alevin
   salmon alevin -l ISR  \
     -i ../../ref_files/human_index \
     -1 ${f}_R1_001.fastq.gz \
