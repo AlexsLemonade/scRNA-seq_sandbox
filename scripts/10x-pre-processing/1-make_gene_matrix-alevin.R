@@ -33,10 +33,10 @@ option_list <- list(
               metavar = "character"),
   make_option(opt_str = c("-o", "--output"), type = "character",
               default = getwd(), help = "Directory where you would like the
-                output to go", metavar = "character"),
+              output to go", metavar = "character"),
   make_option(opt_str = c("-q", "--qc"), type = "character",
               default = getwd(), help = "Directory where you would like the qc 
-                reports to go", metavar = "character"),
+              reports to go", metavar = "character"),
   make_option(opt_str = c("-l", "--label"), type = "character",
               default = "", help = "Optional label for output files",
               metavar = "character")
@@ -45,10 +45,10 @@ option_list <- list(
 # Parse options
 opt <- parse_args(OptionParser(option_list = option_list))
 
-opt$data  <- "pbmc_data/alevin_output"
-opt$output <-  "pbmc_data_gene_matrix.tsv"
-opt$qc <-  "results"
-opt$label <- "pbmc"
+# Add an underscore if opt$label is being used
+if (opt$label != "") {
+  opt$label <-  paste0("_", opt$label)
+}
 
 #----------------- Set up function from the COMBINE lab------------------------#
 ReadAlevin <- function(base.path = NULL){
@@ -96,6 +96,8 @@ if (!dir.exists(opt$qc)) {
   dir.create(opt$qc)
 }
 
+sample.key <- c()
+
 # Run all the data and make it into one big matrix
 all.data <- do.call("cbind", lapply(alevin.files, function(file) {
                     
@@ -109,6 +111,9 @@ all.data <- do.call("cbind", lapply(alevin.files, function(file) {
                     # Run this function on our files
                     alv.data <- ReadAlevin(file)
                     
+                    # We'll keep track of what sample these cells are coming from
+                    sample.key <- c(sample.key, rep(basename(file), ncol(alv.data)))
+
                     # Return the gene matrix
                     return(alv.data)
                     })
@@ -118,11 +123,7 @@ all.data <- do.call("cbind", lapply(alevin.files, function(file) {
 gene.matrix <- data.frame("genes" = rownames(all.data), all.data)
 
 # Save this overall gene matrix to a tsv file
-readr::write_tsv(gene.matrix, opt$output)
+readr::write_tsv(gene.matrix, file.path(opt$output, paste0("counts", opt$label, ".tsv")))
 
-
-# If the output directory for the qc reports, doesn't exist, make one
-if (!dir.exists(opt$qc)) {
-  message(paste0("Can't find '", opt$qc, "' in the current directory, making a directory."))
-  dir.create(opt$qc)
-}
+# Save sample key to a tsv file
+readr::write_tsv(sample.key, file.path(opt$output, paste0("sample_key", opt$label, ".tsv")))
