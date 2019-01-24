@@ -22,7 +22,7 @@ Rscript scripts/post-processing/1-run_normalization.R \
 #------------------------------Dimension reduction-----------------------------#
 Rscript scripts/post-processing/2-dim_reduction_analysis.R \
   -d ${dir}/normalized_${label} \
-  -m ${dir}/metadata.tsv \
+  -m ${dir}/sample_key_pbmc.tsv \
   -r pca \
   -l ${label} \
   -o results/pca_${label} 
@@ -30,7 +30,7 @@ Rscript scripts/post-processing/2-dim_reduction_analysis.R \
 #------------------------------Clustering analysis-----------------------------#
 Rscript scripts/post-processing/3-cluster_analysis.R \
   -d results/pca_${label} \
-  -m ${dir}/metadata.tsv \
+  -m ${dir}/sample_key_pbmc.tsv \
   -l ${label} \
   -o results/pca_results 
   

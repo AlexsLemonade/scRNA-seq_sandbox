@@ -7,7 +7,9 @@
 # Options:
 # "-d" - Directory of where individual samples' alevin folders are located.
 # "-o" - Directory of where the output gene matrix file should go.(Optional)
-# "-q" - Directory of where the qc reports from csoneson/alevinQC should go.
+# "-q" - Directory of where the qc reports from csoneson/alevinQC should go. If 
+#        no directory is specified, it is assumed you do not want to run alevinQC.
+#        (Optional)
 # "-l" - Optional label to add to output files. Generally necessary if processing
 #        multiple datasets in the same pipeline.
 # 
@@ -35,8 +37,9 @@ option_list <- list(
               default = getwd(), help = "Directory where you would like the
               output to go", metavar = "character"),
   make_option(opt_str = c("-q", "--qc"), type = "character",
-              default = getwd(), help = "Directory where you would like the qc 
-              reports to go", metavar = "character"),
+              default = NULL, help = "Directory where you would like the qc 
+              reports to go. If no directory is specified, it is assumed you 
+              do not want to run the alevinQC", metavar = "character"),
   make_option(opt_str = c("-l", "--label"), type = "character",
               default = "", help = "Optional label for output files",
               metavar = "character")
@@ -91,35 +94,37 @@ ReadAlevin <- function(base.path = NULL){
 alevin.files <- dir(opt$data, full.names = TRUE)
 
 # If the output directory for the qc reports, doesn't exist, make one
-if (!dir.exists(opt$qc)) {
-  message(paste0("Can't find '", opt$qc, "' in the current directory, making a 
-                 directory."))
-  dir.create(opt$qc)
+if (!is.null(opt$qc)) {
+  if (!dir.exists(opt$qc)) {
+    message(paste0("Can't find '", opt$qc, 
+                   "' in the current directory, making a directory."))
+    dir.create(opt$qc)
+  }
 }
-
-# Make an empty list to store the data
-sample.key <- c()
 
 # Run all the data and make it into one big matrix
 all.data <- do.call("cbind", lapply(alevin.files, function(file) {
-                    
-                    # Produce a QC report
-                    alevinQC::alevinQCReport(file,
-                                             sampleId = basename(file), 
-                                             outputFile = paste0(basename(file), 
-                                                                 "_qc_report.html"), 
-                                             outputFormat = "html_document")
-                    
+                    if (!is.null(opt$qc)) {
+                      # Produce a QC report
+                      alevinQC::alevinQCReport(file,
+                                               sampleId = basename(file), 
+                                               outputFile = paste0(basename(file), 
+                                                                   "_qc_report.html"), 
+                                               outputFormat = "html_document")
+                    }
                     # Run this function on our files
                     alv.data <- ReadAlevin(file)
                     
                     # We'll keep track of what sample these cells are coming from
-                    sample.key <- c(sample.key, rep(basename(file), ncol(alv.data)))
+                    colnames(alv.data) <- paste0(colnames(alv.data),":", basename(file))
 
                     # Return the gene matrix
                     return(alv.data)
                     })
 )
+
+# Extract sample info for each cell
+samples <- stringr::word(colnames(all.data), sep = ":", -1)
 
 # Take out the data and make genes a column so write_tsv will have it
 gene.matrix <- data.frame("genes" = rownames(all.data), all.data)
@@ -129,6 +134,6 @@ readr::write_tsv(gene.matrix, file.path(opt$output, paste0("counts", opt$label,
                                                            ".tsv")))
 
 # Save sample key to a tsv file
-readr::write_tsv(data.frame(sample.key), file.path(opt$output, 
-                                                   paste0("sample_key",
-                                                          opt$label, ".tsv")))
+readr::write_tsv(data.frame(samples), file.path(opt$output, 
+                                                paste0("sample_key",
+                                                       opt$label, ".tsv")))
