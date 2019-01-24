@@ -45,6 +45,11 @@ option_list <- list(
 # Parse options
 opt <- parse_args(OptionParser(option_list = option_list))
 
+opt$data  <- "pbmc_data/alevin_output"
+opt$output <-  "pbmc_data_gene_matrix.tsv"
+opt$qc <-  "results"
+opt$label <- "pbmc"
+
 #----------------- Set up function from the COMBINE lab------------------------#
 ReadAlevin <- function(base.path = NULL){
   if (!dir.exists(base.path)) {
@@ -83,28 +88,26 @@ ReadAlevin <- function(base.path = NULL){
 
 #------------------------------Run on each sample file-------------------------#
 # Obtain sample list 
-alevin.list <- dir(opt$data)
+alevin.files <- dir(opt$data, full.names = TRUE)
 
 # If the output directory for the qc reports, doesn't exist, make one
 if (!dir.exists(opt$qc)) {
+  message(paste0("Can't find '", opt$qc, "' in the current directory, making a directory."))
   dir.create(opt$qc)
 }
 
 # Run all the data and make it into one big matrix
 all.data <- do.call("cbind", lapply(alevin.files, function(file) {
-                    # Obtain sample name 
-                    sample.name <- stringr::word(file, sep = "/", -3)
                     
                     # Produce a QC report
                     alevinQC::alevinQCReport(file,
-                                             sampleId = sample.name, 
-                                             outputFile = paste0(opt$qc, 
-                                                                 sample.name, 
+                                             sampleId = basename(file), 
+                                             outputFile = paste0(basename(file), 
                                                                  "_qc_report.html"), 
                                              outputFormat = "html_document")
                     
                     # Run this function on our files
-                    alv.data <- ReadAlevin(alevin.file)
+                    alv.data <- ReadAlevin(file)
                     
                     # Return the gene matrix
                     return(alv.data)
@@ -116,3 +119,10 @@ gene.matrix <- data.frame("genes" = rownames(all.data), all.data)
 
 # Save this overall gene matrix to a tsv file
 readr::write_tsv(gene.matrix, opt$output)
+
+
+# If the output directory for the qc reports, doesn't exist, make one
+if (!dir.exists(opt$qc)) {
+  message(paste0("Can't find '", opt$qc, "' in the current directory, making a directory."))
+  dir.create(opt$qc)
+}

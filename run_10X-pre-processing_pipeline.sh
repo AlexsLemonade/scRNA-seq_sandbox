@@ -6,13 +6,14 @@
 # 
 # Change your directory name and desired labels here.
 dir=pbmc_data
-label=pbmc_1k_v2_fastqs
+label=pbmc_1k_v2
 
 #----------------------------Make directories---------------------------------#
 mkdir ${dir}
 mkdir ref_files
 mkdir results
 mkdir ${dir}/alevin_output
+mkdir ${dir}/normalized_${label}
 
 #---------------------------Download the dataset-------------------------------#
 cd ${dir}
@@ -57,11 +58,11 @@ for f in `ls *_R1_001.fastq.gz | sed 's/_R1_001.fastq.gz//' `
 
 #-------------------Make gene matrix from alevin output------------------------#
 # Back out of the current directory
-cd ..
+cd ../..
 
 # Run this script, which will create alevinQC output for you
 Rscript scripts/10x-pre-processing/1-make_gene_matrix-alevin.R \
   -d ${dir}/alevin_output \
-  -o ${dir}/${label}_gene_matrix.tsv \
+  -o ${dir}/normalized_${label}/counts_${label}.tsv \
   -q ../results \
   -l ${label}

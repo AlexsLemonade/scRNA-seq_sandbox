@@ -5,12 +5,12 @@
 # Purpose: running the post-processing steps for single cell RNA-seq data.
 
 # Change your directory name, and desired label here. Then run the script.
-dir=darmanis_data
-label=darmanis
+dir=pbmc_data
+label=pbmc
 
 #---------------------------Prep the data with this Rmd------------------------#
 # Need to set up this Rmd for each dataset
-Rscript -e "rmarkdown::render('darmanis_data_prep.Rmd')"
+#Rscript -e "rmarkdown::render('darmanis_data_prep.Rmd')"
 
 #-------------------------------Run normalization------------------------------#
 Rscript scripts/post-processing/1-run_normalization.R \
