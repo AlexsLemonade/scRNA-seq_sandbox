@@ -6,7 +6,7 @@
 # 
 # Change your directory name and desired labels here.
 dir=pbmc_data
-label=pbmc_1k_v2
+label=pbmc
 
 #----------------------------Make directories---------------------------------#
 mkdir ${dir}
@@ -63,6 +63,6 @@ cd ../..
 # Run this script, which will create alevinQC output for you
 Rscript scripts/10x-pre-processing/1-make_gene_matrix-alevin.R \
   -d ${dir}/alevin_output \
-  -o ${dir}/normalized_${label}/counts_${label}.tsv \
-  -q ../results \
+  -o ${dir}/normalized_${label} \
+  -q results \
   -l ${label}

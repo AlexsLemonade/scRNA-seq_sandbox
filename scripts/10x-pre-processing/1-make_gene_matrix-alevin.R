@@ -70,7 +70,7 @@ ReadAlevin <- function(base.path = NULL){
     stop("Expression matrix file missing")
   }
   # Read in the data from alevin output
-  matrix <- as.matrix(read.csv(matrix.loc, header=FALSE))
+  matrix <- as.matrix(read.csv(matrix.loc, header = FALSE))
   matrix <- t(matrix[,1:ncol(matrix)-1])
   
   # Read in the cell and gene names from the alevin output
@@ -92,10 +92,12 @@ alevin.files <- dir(opt$data, full.names = TRUE)
 
 # If the output directory for the qc reports, doesn't exist, make one
 if (!dir.exists(opt$qc)) {
-  message(paste0("Can't find '", opt$qc, "' in the current directory, making a directory."))
+  message(paste0("Can't find '", opt$qc, "' in the current directory, making a 
+                 directory."))
   dir.create(opt$qc)
 }
 
+# Make an empty list to store the data
 sample.key <- c()
 
 # Run all the data and make it into one big matrix
@@ -123,7 +125,10 @@ all.data <- do.call("cbind", lapply(alevin.files, function(file) {
 gene.matrix <- data.frame("genes" = rownames(all.data), all.data)
 
 # Save this overall gene matrix to a tsv file
-readr::write_tsv(gene.matrix, file.path(opt$output, paste0("counts", opt$label, ".tsv")))
+readr::write_tsv(gene.matrix, file.path(opt$output, paste0("counts", opt$label,
+                                                           ".tsv")))
 
 # Save sample key to a tsv file
-readr::write_tsv(sample.key, file.path(opt$output, paste0("sample_key", opt$label, ".tsv")))
+readr::write_tsv(data.frame(sample.key), file.path(opt$output, 
+                                                   paste0("sample_key",
+                                                          opt$label, ".tsv")))
