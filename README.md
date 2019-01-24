@@ -3,7 +3,9 @@
 ## About the scripts in this repository: 
 
 ### 1) Pre-processing pipeline: 
-For starting from scratch with an experiment ID or set of SRA's you would like to process into a counts gene matrix file.
+For starting from scratch with fastq files, an experiment ID or set of SRA's you would like to process into a counts gene matrix file.
+	### A) For smart-seq2 data or other single cell data that is avaiable on SRA
+	### B) For 10X Genomics data (or drop-seq data)
 
 ### 2) Post-processing pipeline:
 For starting from counts gene matrix data file that you would like to normalize and do further analyses on. 
@@ -32,26 +34,49 @@ $ docker exec -it <CONAINER_ID> bash
 ## 1) Pre-processing pipeline: 
 For starting from scratch with an experiment ID or set of SRA's you would like to process into a counts gene matrix file.
 
-### Step 1. Open `run_pre-processing_pipeline.sh` and change the variables to the dataset you 
+### A) For smart-seq2 data or other single cell data that is avaiable on SRA and not droplet or tag-based.
+
+#### Step A1. Open `run_pre-processing_pipeline.sh` and change the variables to the dataset you 
 are working with OR keep this the same and follow this example's dataset.
 ```
-#Change your directory name, GEO ID, and SRP here. Then run the script.
+# Change your directory name, GEO ID, and SRP here. Then run the script.
 dir=darmanis_data
 GSE=GSE84465
 SRP=SRP079058
 label=darmanis
 ```
 
-### Step 2. Run the pipeline to process the data with salmon and tximport to create a gene matrix file 
+#### Step A2. Run the pipeline to process the data with salmon and tximport to create a gene matrix file 
 Depending on how many samples are in the dataset this will take an hour or days (if you have thousands of samples)
+
+#### Step A3. Open up Rstudio and prep the data for post-processing
+To open Rstudio in docker, go to your internet browser and enter: `localhost:8787`
+Follow the example in `darmanis_data_prep.Rmd` to set up data.
+
 ```bash
 $ cd <PATH_TO_THE_CLONED_REPOSITORY>  
 $ bash run_pre-processing_pipeline.sh
 ```
+### B) For 10X Genomics data (or drop-seq data)
 
-### Step 3. Open up Rstudio and prep the data for post-processing
-To open Rstudio in docker, go to your internet browser and enter: `localhost:8787`
-Follow the example in `darmanis_data_prep.Rmd` to set up data.
+#### Step B1. Open `run_10X-pre-processing_pipeline.sh` and change the url and variables to the dataset you 
+are working with OR keep this the same and follow this example's dataset.
+```
+# Change your directory name, and label here.
+dir=pbmc_data
+label=pbmc_1k_v2
+```
+
+Change this line to the url of the fastq files for the dataset you want to work with. Or keep as is and follow the example
+```
+cd ${dir}
+curl -O http://cf.10xgenomics.com/samples/cell-exp/3.0.0/pbmc_1k_v2/pbmc_1k_v2_fastqs.tar
+tar -xvf ${label}.tar
+
+```
+
+#### Step B2. Run the pipeline to process the data with Alevin to create a gene matrix file 
+Depending on how many samples are in the dataset this will take a few hours or so. 
 
 
 ## 2) Post-processing pipeline: 
