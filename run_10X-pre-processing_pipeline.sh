@@ -17,7 +17,6 @@ mkdir ${dir}/normalized_${label}
 
 #---------------------------Download the dataset-------------------------------#
 cd ${dir}
-#curl -O http://cf.10xgenomics.com/samples/cell-exp/3.0.0/pbmc_1k_v2/pbmc_1k_v2_fastqs.tar
 curl -O http://s3-us-west-2.amazonaws.com/10x.files/samples/cell-exp/3.0.0/pbmc_10k_v3/pbmc_10k_v3_fastqs.tar
 tar -xvf pbmc_10k_v3_fastqs.tar
 
@@ -38,7 +37,7 @@ fi
 
 #--------------------------- Quantify samples-------------------------------#
 # For each fastq file pair run salmon/alevin for quantfication
-cd ${label}
+cd pbmc_10k_v3_fastqs
   
 for f in `ls *_R1_001.fastq.gz | sed 's/_R1_001.fastq.gz//' `
   do

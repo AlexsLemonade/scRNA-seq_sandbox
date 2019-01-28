@@ -3,14 +3,11 @@
 # CCDL for ALSF 2018
 
 # Purpose: running the post-processing steps for single cell RNA-seq data.
+# Note that data must be in a gene matrix format for this script to run. 
 
 # Change your directory name, and desired label here. Then run the script.
 dir=pbmc_10k_data
 label=pbmc_10k
-
-#---------------------------Prep the data with this Rmd------------------------#
-# Need to set up this Rmd for each dataset
-# Rscript -e "rmarkdown::render('darmanis_data_prep.Rmd')"
 
 #-------------------------------Run normalization------------------------------#
 Rscript scripts/post-processing/1-run_normalization.R \
