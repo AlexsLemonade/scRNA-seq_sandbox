@@ -91,7 +91,7 @@ ReadAlevin <- function(base.path = NULL){
 
 #------------------------------Run on each sample file-------------------------#
 # Obtain sample list 
-alevin.files <- dir(opt$data, full.names = TRUE)
+alevin.files <- dir(opt$dir, full.names = TRUE)
 
 # If the output directory for the qc reports, doesn't exist, make one
 if (!is.null(opt$qc)) {
@@ -110,7 +110,8 @@ all.data <- do.call("cbind", lapply(alevin.files, function(file) {
                                                sampleId = basename(file), 
                                                outputFile = paste0(basename(file), 
                                                                    "_qc_report.html"), 
-                                               outputFormat = "html_document")
+                                               outputFormat = "html_document",
+                                               outputDir = "results")
                     }
                     # Run this function on our files
                     alv.data <- ReadAlevin(file)
