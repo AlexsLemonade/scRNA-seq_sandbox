@@ -42,8 +42,6 @@ RUN apt-get update -qq && apt-get -y --no-install-recommends install \
 # Install R packages from github and urls
 # Need most updated version of tximport so AlevinQC will install later
 RUN R -e "devtools::install_github('mikelove/tximport', ref = 'b5b5fe11b0093b4b2784f982277b2aa66d2607f7')"
-RUN R -e "devtools::install_github('wgmao/PLIER', ref = '8fba7af2fbec9fd23a9ffcad913e4589990bde2f', dependencies = TRUE)"
-RUN R -e "devtools::install_github('const-ae/ggsignif', ref = 'aadd9d44a360fc35fc3aef4b0fcdfdb7e1768d27')"
 RUN R -e "devtools::install_github('csoneson/alevinQC', ref = '1fdf1c14b59eead3e239d7f99b607d59753e9420', dependencies = TRUE)"
 
 # FastQC

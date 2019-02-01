@@ -7,19 +7,18 @@
 # Options:
 # "-d" - Directory of where individual samples' alevin folders are located.
 # "-o" - Directory of where the output gene matrix file should go.(Optional)
-# "-q" - Directory of where the qc reports from csoneson/alevinQC should go. If 
-#        no directory is specified, it is assumed you do not want to run alevinQC.
-#        (Optional)
+# "-q" - Directory of where the qc reports from alevinQC should go. If no 
+#        directory is specified, alevinQC is not run. (Optional)
 # "-l" - Optional label to add to output files. Generally necessary if processing
 #        multiple datasets in the same pipeline.
 # 
 # Command line example:
 #
 # Rscript scripts/10x-pre-processing/1-make_gene_matrix-alevin.R \
-# -d data/alevin_output \
-# -o data \
-# -q qc_reports \
-# -l "pbmc"
+#   -d data/alevin_output \
+#   -o data \
+#   -q qc_reports \
+#   -l "pbmc"
 
 #-------------------------- Get necessary packages-----------------------------#
 # Attach needed libraries
@@ -37,9 +36,9 @@ option_list <- list(
               default = getwd(), help = "Directory where you would like the
               output to go", metavar = "character"),
   make_option(opt_str = c("-q", "--qc"), type = "character",
-              default = NULL, help = "Directory where you would like the qc 
-              reports to go. If no directory is specified, it is assumed you 
-              do not want to run the alevinQC", metavar = "character"),
+              default = NULL, help = "Directory of where the qc reports from 
+              alevinQC should go. If no directory is specified, alevinQC is 
+              not run. (Optional)", metavar = "character"),
   make_option(opt_str = c("-l", "--label"), type = "character",
               default = "", help = "Optional label for output files",
               metavar = "character")
@@ -54,39 +53,41 @@ if (opt$label != "") {
 }
 
 #----------------- Set up function from the COMBINE lab------------------------#
-ReadAlevin <- function(base.path = NULL){
-  if (!dir.exists(base.path)) {
+# This function is adapted from: 
+# https://combine-lab.github.io/alevin-tutorial/2018/running-alevin/
+# Set up function from the COMBINE lab
+ReadAlevin <- function(base_path = NULL){
+  if (! dir.exists(base_path )){
     stop("Directory provided does not exist")
   }
   # Obtain paths to data
-  barcode.loc <- file.path(base.path, "alevin", "quants_mat_rows.txt")
-  gene.loc <- file.path(base.path, "alevin", "quants_mat_cols.txt")
-  matrix.loc <- file.path(base.path, "alevin", "quants_mat.csv")
+  barcode_loc <- file.path(base_path, "alevin", "quants_mat_rows.txt")
+  gene_loc <- file.path(base_path, "alevin", "quants_mat_cols.txt")
+  data_loc <- file.path(base_path, "alevin", "quants_mat.csv")
   
-  if (!file.exists(barcode.loc)) {
+  if (!file.exists(barcode_loc)) {
     stop("Barcode file missing")
   }
-  if (!file.exists(gene.loc)) {
+  if (!file.exists(gene_loc)) {
     stop("Gene name file missing")
   }
-  if (!file.exists(matrix.loc)) {
+  if (!file.exists(data_loc)) {
     stop("Expression matrix file missing")
   }
-  # Read in the data from alevin output
-  matrix <- as.matrix(read.csv(matrix.loc, header = FALSE))
-  matrix <- t(matrix[,1:ncol(matrix)-1])
+  # Read in the data from Alevin output
+  expression_matrix <- readr::read_csv(data_loc, col_names = FALSE, 
+                                       progress = FALSE)
   
-  # Read in the cell and gene names from the alevin output
-  cell.names <- readLines(barcode.loc)
-  gene.names <- readLines(gene.loc)
+  # Transpose the matrix so it is gene x cell
+  expression_matrix <- t(expression_matrix[,1:ncol(expression_matrix)-1])
   
   # Apply the colnames and rownames to the dataset
-  colnames(matrix) <- cell.names
-  rownames(matrix) <- gene.names
+  colnames(expression_matrix) <- readLines(barcode_loc)
+  rownames(expression_matrix) <- readLines(gene_loc)
   
   # Make NA values into 0's
-  matrix[is.na(matrix)] <- 0
-  return(matrix)
+  expression_matrix[is.na(expression_matrix)] <- 0
+  return(expression_matrix)
 }
 
 #------------------------------Run on each sample file-------------------------#
@@ -100,24 +101,25 @@ if (!is.null(opt$qc)) {
                    "' in the current directory, making a directory."))
     dir.create(opt$qc)
   }
+  # Produce a QC report
+  lapply(alevin.files, function(file) {
+         alevinQC::alevinQCReport(file,
+                                  sampleId = basename(file), 
+                                  outputFile = paste0(basename(file), 
+                                                      "_qc_report.html"), 
+                                  outputFormat = "html_document",
+                                  outputDir = opt$qc)
+  })
 }
 
 # Run all the data and make it into one big matrix
 all.data <- do.call("cbind", lapply(alevin.files, function(file) {
-                    if (!is.null(opt$qc)) {
-                      # Produce a QC report
-                      alevinQC::alevinQCReport(file,
-                                               sampleId = basename(file), 
-                                               outputFile = paste0(basename(file), 
-                                                                   "_qc_report.html"), 
-                                               outputFormat = "html_document",
-                                               outputDir = "results")
-                    }
                     # Run this function on our files
                     alv.data <- ReadAlevin(file)
                     
                     # We'll keep track of what sample these cells are coming from
-                    colnames(alv.data) <- paste0(colnames(alv.data),":", basename(file))
+                    colnames(alv.data) <- paste0(colnames(alv.data), ":",
+                                                 basename(file))
 
                     # Return the gene matrix
                     return(alv.data)
