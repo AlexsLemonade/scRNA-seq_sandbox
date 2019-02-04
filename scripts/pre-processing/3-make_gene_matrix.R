@@ -1,9 +1,9 @@
 # CCDL for ALSF 2018
 # C. Savonen
 #
-# Purpose: After salmon has been run successfully on your samples. Assemble the
-# Individual samples quantification data into a matrix. Also use the ensembl IDs
-# to obtain gene symbols. Then save this matrix to an tsv file.
+# Purpose: After salmon has been run successfully on your samples, this script 
+# will use tximport to quantify by transcripts and put all your samples together
+# in one gene matrix tsv file.  
 
 # Options:
 # "-d" - Directory of where individual samples' salmon folders are located.(Optional)
@@ -24,18 +24,6 @@
 # -l "patel"
 
 #-------------------------- Get necessary packages-----------------------------#
-if (!("org.Hs.eg.db" %in% installed.packages())) { 
-  source("https://bioconductor.org/biocLite.R")
-  biocLite("org.Hs.eg.db", suppressUpdates = TRUE)
-}
-if (!("tximport" %in% installed.packages())) {
-  source("https://bioconductor.org/biocLite.R")
-  biocLite("tximport", suppressUpdates = FALSE)
-}
-if (!("rjson" %in% installed.packages())) {
-  install.packages("rjson", suppressUpdates = FALSE)
-}
-
 # Attach needed libraries
 library(org.Hs.eg.db)
 library(optparse)
