@@ -2,7 +2,7 @@
 # C. Savonen
 # CCDL for ALSF 2019
 
-# Purpose: running the pre-processing steps for single cell RNA-seq data.
+# Purpose: running the pre-processing steps for tag-based single cell RNA-seq data.
 # 
 # Change your directory name and desired labels here.
 dir=pbmc_10k_data
@@ -61,7 +61,7 @@ for f in `ls *_R1_001.fastq.gz | sed 's/_R1_001.fastq.gz//' `
 cd ../..
 
 # Run this script, which will create alevinQC output for you
-Rscript scripts/10x-pre-processing/1-make_gene_matrix-alevin.R \
+Rscript scripts/tag-based-pre-processing/1-make_gene_matrix-alevin.R \
   -d ${dir}/alevin_output \
   -o ${dir}/normalized_${label} \
   -q results \
