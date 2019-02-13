@@ -1,19 +1,19 @@
 # CCDL for ALSF 2018
 # C. Savonen
 #
-# Purpose: After salmon has been run successfully on your samples, this script 
+# Purpose: After salmon has been run successfully on your samples, this script
 # will use tximport to quantify by transcripts and put all your samples together
-# in one gene matrix tsv file.  
+# in one gene matrix tsv file.
 
 # Options:
 # "-d" - Directory of where individual samples' salmon folders are located.(Optional)
 # "-o" - Directory of where the output gene matrix RDS file should go.(Optional)
 # "-g" - GEO ID for the dataset so the metadata can be downloaded.
-# "-m" - Percent mapped reads (reported as a decimal) cutoff for filtering 
+# "-m" - Percent mapped reads (reported as a decimal) cutoff for filtering
 #        samples. Default is 0.5.
 # "-l" - Optional label to add to output files. Generally necessary if processing
 #        multiple datasets in the same pipeline.
-# 
+#
 # Command line example:
 #
 # Rscript scripts/3-make_gene_matrix.R \
@@ -27,7 +27,6 @@
 # Attach needed libraries
 library(org.Hs.eg.db)
 library(optparse)
-library(tximport)
 
 # Magrittr pipe
 `%>%` <- dplyr::`%>%`
@@ -43,7 +42,7 @@ option_list <- list(
     make_option(opt_str = c("-o", "--output"), type = "character",
                 default = getwd(), help = "Directory where you would like the
                 output to go", metavar = "character"),
-    make_option(opt_str = c("-m", "--mapped"), type = "numeric", 
+    make_option(opt_str = c("-m", "--mapped"), type = "numeric",
                 default = "0.5", help = "Cutoff for what percent mapped_reads samples
                 should have. Any samples with less than the cutoff will be removed.",
                 metavar = "numeric"),
@@ -55,6 +54,16 @@ option_list <- list(
 # Parse options
 opt <- parse_args(OptionParser(option_list = option_list))
 
+opt$dir <- "darmanis_data/salmon_quants"
+opt$output <- "darmanis_data"
+opt$mapped <- 0.5 
+opt$label <- "darmanis"
+
+# Add an underscore if label is specified
+if (!is.null(opt$label)){
+  opt$label <- paste0(opt$label, "_")
+}
+
 #------------------------------Import Salmon reads-----------------------------#
 # Get quant files
 quant.files <- list.files(opt$dir, recursive = TRUE, full.names = TRUE,
@@ -64,7 +73,7 @@ quant.files <- list.files(opt$dir, recursive = TRUE, full.names = TRUE,
 sample.names <- stringr::word(quant.files, 3, sep = "/")
 
 # Get transcript IDs
-transcripts <- read.table(quant.files[[1]], header = TRUE, 
+transcripts <- read.table(quant.files[[1]], header = TRUE,
                           colClasses = c("character", rep("NULL", 4)))
 
 # Get rid of transcript version numbers because mapIDs will not recognize them
@@ -86,6 +95,9 @@ tx.counts <- tximport::tximport(quant.files, type = "salmon", tx2gene = tx.gene.
 # Make as a dataframe
 tx.counts <- data.frame(tx.counts$counts, stringsAsFactors = FALSE)
 
+# Save to RDS file temporarily
+saveRDS(tx.counts, "tximport_obj.RDS")
+
 #---------------------Salmon proportion of mapped reads------------------------#
 # Get the proportion of mapped reads by reading the meta files
 salmon.prop.assigned <- vapply(sample.names, function(x) {
@@ -94,7 +106,7 @@ salmon.prop.assigned <- vapply(sample.names, function(x) {
   }, FUN.VALUE = 1)
 
 # Make a histogram of this information
-png(file.path(opt$output, paste0(opt$label, "_prop_reads_mapped_hist.png")))
+png(file.path(opt$output, paste0(opt$label, "prop_reads_mapped_hist.png")))
 hist(salmon.prop.assigned, xlab = "", main = "Proportion of Mapped Reads",
      breaks = 20)
 dev.off()
@@ -102,6 +114,9 @@ dev.off()
 # Filter out samples with too low of mapped reads
 tx.counts <- tx.counts[, which(salmon.prop.assigned > opt$mapped)]
 
-# Save to an RDS file
-readr::write_tsv(salmon.data, file = file.path(opt$output, 
-                                      paste0(opt$label, ".counts.data.tsv")))
+# Make these numbers round
+tx.counts <- tx.counts %>% mutate_all(round)
+
+# Save to tsv file
+readr::write_tsv(tx.counts, file.path(opt$output,
+                                      paste0(opt$label, "counts.tsv")))

@@ -8,7 +8,7 @@
 #
 # Options:
 # '-d' : Path to gene matrix in tab delimited format, gene x sample with gene
-#        info as the first column. With gene info column labeled as 'gene' or 
+#        info as the first column. With gene info column labeled as 'gene' or
 #        'genes' (not case sensitive)",
 # '-a' : Normalization method to use. To run all methods use "all", to run more
 #        than one method, separate the names by a space. eg -a tmm log
@@ -19,9 +19,10 @@
 #           'deseq2'- Use DEseq2 size factors
 #           'vsd'- Use DEseq2 varianceStabilizingTransformation function
 #           'tmm'- trimmed mean M values by edgeR
+#           'scran' - pooled CPM values
 #           'all'- run all the above methods
 # '-o' : Directory where you would like the output to go. Default is current
-#        directory. New folder will be created if the specified folder doesn't 
+#        directory. New folder will be created if the specified folder doesn't
 #        exist.
 # '-l' : Optional label for output files"
 #
@@ -45,9 +46,9 @@ option_list <- list(
               metavar = "character"),
   make_option(opt_str = c("-a", "--algorithm"), type = "character",
               default = "none", help = "Normalization method to use. Options:
-              'scale', log', 'voom', 'deseq2', 'vsd', , 'tmm' or use 'all'
-              to run all algorithms. If multiple methods are wanted, separate 
-              with a space eg: 'log voom'",
+              'scale', log', 'voom', 'deseq2', 'vsd', , 'tmm', 'scram' or use 
+              'all' to run all algorithms. If multiple methods are wanted, 
+              separate with a space eg: 'log voom'",
               metavar = "character"),
   make_option(opt_str = c("-o", "--output"), type = "character",
               default = getwd(), help = "Directory where you would like the
@@ -60,6 +61,11 @@ option_list <- list(
 # Parse options
 opt <- parse_args(OptionParser(option_list = option_list))
 
+opt$data <- "darmanis_data/normalized_darmanis/counts_darmanis.tsv"
+opt$algorithm <- "scran"
+opt$output <- "darmanis_data/normalized_darmanis"
+opt$label <- "darmanis"
+  
 # Stop if no input data matrix is specified
 if (opt$data == "none") {
     stop("Error: no specified input gene matrix file. Use option -d to specify
@@ -79,7 +85,7 @@ if (opt$label != "") {
 
 #---------------------------Set up algorithms to run---------------------------#
 # List all the supported algorithms
-all.algorithms <- c('scale', 'log', 'voom','tmm', 'deseq2', 'vsd')
+all.algorithms <- c('scale', 'log', 'voom','tmm', 'deseq2', 'vsd', 'scran')
 
 # If "all" is chosen, put all the normalization methods in list
 if (opt$algorithm == "all") {
@@ -93,7 +99,7 @@ if (opt$algorithm == "all") {
 if (any(is.na(match(opt$algorithm, all.algorithms)))) {
     stop("No supported normalization method was given. Check for typos.
          Use option -a to choose and algorithm. Acceptable options:'scale', 'log',
-         'voom','tmm','deseq2', 'vsd',  or 'all")
+         'voom','tmm','deseq2', 'vsd', 'scran', or 'all")
 }
 #----------------------------------Load data-----------------------------------#
 # Read in a tsv file of data
@@ -104,7 +110,7 @@ gene.col <- grep("gene", colnames(dataset), ignore.case = TRUE)
 
 # Create the output for results folder if it does not exist
 if (length(gene.col) < 1) {
-  stop("Error: Cannot find a column with gene info. (Looking for 'gene' as 
+  stop("Error: Cannot find a column with gene info. (Looking for 'gene' as
        column name")
 }
 
@@ -117,32 +123,32 @@ dataset <- dataset[, -gene.col]
 #-----------------------Run each algorithm in the list-------------------------#
 # For each algorithm, run through this loop
 for (algorithm in opt$algorithm) {
-    
+
     # Print out progress message:
     cat("\n \n Running:", algorithm, "...")
-    
+
     # Run normalization algorithms
     if (algorithm  == "scale"){
         data.out <- as.data.frame(scale(dataset))
         title <- "Scaled Expression"
-        
+
     } else  if (algorithm == "log") {
         data.out <- sign(dataset) * log2(1 + abs(dataset))
         title <- "Log2 Expression"
-        
+
     } else  if (algorithm == "voom") {
         data.out <- as.data.frame(limma::voom(counts = dataset,
                                               normalize.method = "quantile",
                                               plot = FALSE)$E)
         title <- "Log2 Expression (Voom)"
-        
+
     } else if (algorithm == "tmm") {
         data.dge <- edgeR::DGEList(counts = dataset)
         data.dge <- edgeR::calcNormFactors(data.dge)
         data.out <- as.data.frame(edgeR::cpm(data.dge, normalized.lib.sizes = TRUE,
                                              log = TRUE))
         title <- "Log2 Expression (TMM / edgeR)"
-        
+
     } else if (algorithm == "deseq") {
         data.colData <- data.frame(row.names = colnames(dataset))
         data.dds <- DESeq2::DESeqDataSetFromMatrix(dataset, colData = data.colData,
@@ -151,33 +157,38 @@ for (algorithm in opt$algorithm) {
         data.out <- as.data.frame(DESeq2::counts(data.dds, normalized = TRUE))
         data.out <- sign(data.out) * log2(1 + abs(data.out))
         title <- "Log2 Expression (DEseq2)"
-        
+
     } else if (algorithm == "vsd") {
         data.colData <- data.frame(row.names = colnames(dataset))
         data.dds <- DESeq2::DESeqDataSetFromMatrix(dataset, colData = data.colData,
                                                    design = ~1)
         data.out <- SummarizedExperiment::assay(
-                    DESeq2::varianceStabilizingTransformation(data.dds, 
+                    DESeq2::varianceStabilizingTransformation(data.dds,
                                                               blind = TRUE))
         title <- "Log2 Expression (varianceStabilizingTransformation - DEseq2)"
-        
+    } else if (algorithm == "scran") {
+        data.in <- as.matrix(dataset)
+        dimnames(data.in)[[1]] <- genes$gene
+        data.sce <- SingleCellExperiment::SingleCellExperiment(list(counts = data.in))
+        clusters <- scran::quickCluster(data.sce, min.size = 100)
+        data.out <- scran::computeSumFactors(data.in, cluster = clusters)
     }
     # Calculate percent zeroes
     perc.zero <- round(length(which(data.out == 0)) / length(as.matrix(data.out)), 3)
-    
+
     # Build output file name:
     output.file <- file.path(opt$output, paste0(algorithm, opt$label, ".tsv"))
-    
+
     # Print out summary:
     cat("\n normalization method:", title,
         "\n number of genes:", nrow(data.out),
         "\n number of cells:", ncol(data.out),
         "\n percent zeroes:", perc.zero,
         "\n\n results file:", output.file)
-    
+
     # Save normalized data to a tsv file
     data.out <- data.frame(genes, data.out)
-    
+
     # Save normalized data to a tsv file
     readr::write_tsv(data.out, output.file)
 }

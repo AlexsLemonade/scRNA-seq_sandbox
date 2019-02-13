@@ -37,7 +37,7 @@ RUN apt-get update -qq && apt-get -y --no-install-recommends install \
   Rtsne \
   NMI \
   && R -e "source('https://bioconductor.org/biocLite.R')" \
-  && R -e "BiocInstaller::biocLite(c('ensembldb', 'DESeq2', 'qvalue', 'org.Hs.eg.db', 'org.Dr.eg.db', 'ComplexHeatmap', 'ConsensusClusterPlus', 'SRAdb', 'DBI', 'limma', 'edgeR'), suppressUpdates = TRUE)"
+  && R -e "BiocInstaller::biocLite(c('ensembldb', 'DESeq2', 'qvalue', 'org.Hs.eg.db', 'org.Dr.eg.db', 'ComplexHeatmap', 'ConsensusClusterPlus', 'SRAdb', 'DBI', 'limma', 'edgeR', 'scran', 'scater'), suppressUpdates = TRUE)"
 
 # Install R packages from github and urls
 # Need most updated version of tximport so AlevinQC will install later
@@ -75,3 +75,12 @@ RUN curl -k -L https://github.com/COMBINE-lab/salmon/archive/v${SALMON_VERSION}.
     mkdir build && \
     cd build && \
     cmake .. -DCMAKE_INSTALL_PREFIX=/usr/local && make && make install
+
+RUN apt-get update -y && apt-get install -y wget && \
+    apt-get clean && rm -rf /var/cache/apt/archives/* /var/lib/apt/lists/* && \
+    wget -P /usr/bin "https://raw.githubusercontent.com/inutano/pfastq-dump/master/bin/pfastq-dump" && \
+    chmod +x /usr/bin/pfastq-dump && \
+    wget -P / "https://ftp-trace.ncbi.nlm.nih.gov/sra/sdk/2.9.2/sratoolkit.2.9.2-centos_linux64.tar.gz" && \
+    tar zxf sratoolkit.2.9.2-centos_linux64.tar.gz && \
+    cp -r sratoolkit.2.9.2-centos_linux64/bin/* /usr/bin && \
+    rm -fr sratoolkit.2.9.2-centos_linux64*
