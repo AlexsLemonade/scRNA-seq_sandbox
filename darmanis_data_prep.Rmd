@@ -16,8 +16,8 @@ source(file.path("scripts", "util", "data_prep_functions.R"))
 
 ```{r Import data}
 # Import gene expression matrix data
-data <- readr::read_tsv(file.path("darmanis_data", "salmon_quants",
-                                  "darmanis_data_counts.tsv"))
+data <- readr::read_tsv(file.path("darmanis_data", "darmanis_data_counts.tsv"), 
+                        progress = FALSE)
 ```
 
 ### Import metadata
