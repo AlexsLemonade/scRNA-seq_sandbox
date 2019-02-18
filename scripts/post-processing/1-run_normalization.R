@@ -25,6 +25,9 @@
 #        directory. New folder will be created if the specified folder doesn't
 #        exist.
 # '-l' : Optional label for output files"
+# '-n' : Option to override scran negative factor warning, remove the problematic
+#        genes and normalize. Default is to not continue with scran normalization 
+#        if 100 or more genes need to be removed.  
 #
 # Command line example:
 #
@@ -55,7 +58,10 @@ option_list <- list(
               output to go", metavar = "character"),
   make_option(opt_str = c("-l", "--label"), type = "character",
               default = "", help = "Optional label for output files",
-              metavar = "character")
+              metavar = "character"),
+  make_option(opt_str = c("-n", "--negative"), type = "store_true",
+              default = FALSE, help = "Option to override scran negative factor 
+              warning, remove the problematic genes and normalize")
 )
 
 # Parse options
@@ -174,18 +180,41 @@ for (algorithm in opt$algorithm) {
         title <- "Log2 Expression (varianceStabilizingTransformation - DEseq2)"
     } else if (algorithm == "scran") {
         # scater wants the data to be rounded
-        data.in <- round(as.matrix(dataset))
+        sce <- SingleCellExperiment::SingleCellExperiment(list(
+                                                              counts = round(as.matrix(dataset))))
         
         # Make some clusters
-        #clusters <- scran::quickCluster(sce, min.size = 100)
-        data.in <- scran::computeSumFactors(data.in)
+        sce <- suppressWarnings(scran::computeSumFactors(sce))
+        neg.fact <- which(sce@int_colData@listData$size_factor < 0)
         
+        # Dealing with negative size factors:
+        if (length(neg.fact) < 100) {
+          message(paste(length(neg.fact), "negative size factors from 
+                        scran::computeSizeFactors calculations were found. 
+                        These genes will be removed from normalization output.")) 
+          sce <- sce[, -neg.fact]
+        } else {
+          if (!opt$negative) {
+          warning(paste("Stopping scran normalization. 
+                         There are", length(neg.fact), "negative size factors from 
+                         scran::computeSizeFactors calculations. 
+                         Arbitrary cutoff is set at 100. 
+                         Use -n to override, remove these genes, and 
+                         normalize anyway.")) 
+          } else {
+            message(paste("Option -n is being used. ", length(neg.fact), " genes
+                          are being removed because they have negative size factors
+                          due to heavy zero inflation."))
+            sce <- sce[, -neg.fact]
+          }
+        }
         # Normalize the data
-        sce <- scater::normalize(data.in)
+        sce <- scater::normalize(sce)
         
         # Convert to edgeR so we can extract the data as a matrix more easily
         data.dge <- scran::convertTo(sce, type = "edgeR")
-        data.out <- as.data.frame(data.dge@.Data[[1]])
+        data.out <- as.data.frame(edgeR::cpm(data.dge, normalized.lib.sizes = TRUE,
+                                             log = TRUE))
         title <- "Cluster 'scran' Normalized CPMs"
     }
     # Calculate percent zeroes
