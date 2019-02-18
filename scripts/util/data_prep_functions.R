@@ -4,11 +4,11 @@
 # These functions are used for prepping tximport counts data into a filtered
 # dataset that is ready for uploading to [ASAP online](https://asap.epfl.ch/)
 
-GeneMatrixFilter <- function(data, min_counts = 1, perc_genes = 0.01, num_genes = 100) {
-    # This function is filters and makes data into ASAP format and assumes gene info
+GeneMatrixFilter <- function(dataset, min_counts = 1, perc_genes = 0.01, num_genes = 100) {
+    # This function is filters and makes dataset into ASAP format and assumes gene info
     # is the first column
     # Args:
-    #  data: a gene expression data.frame that is gene x samples, with the first column
+    #  dataset: a gene expression data.frame that is gene x samples, with the first column
     #        containing the gene names
     #  min_counts: the cutoff for minimum number of counts for a gene to be
     #              considered expressed in a particular sample
@@ -21,25 +21,25 @@ GeneMatrixFilter <- function(data, min_counts = 1, perc_genes = 0.01, num_genes 
     # Get rid of decimal points
     #
     # Store the genes separately
-    gene <- data[, 1]
+    gene <- dataset[, 1]
     
     # Get rid of decimals (even if they are .000, ASAP doesn't like them)
-    data <- apply(data[, -1], 2, round)
+    dataset <- dataset[, -1] %>% apply(., 2, round)
     
     # Find genes that are expressed in 1% of cells
-    gene.sum <- apply(data >= min_counts, 1, sum)
+    gene.sum <- apply(dataset >= min_counts, 1, sum)
     perc.genes <- which(gene.sum > ncol(data)*perc_genes)
     
     # Only keep those genes
-    data <- data[perc.genes, ]
+    dataset <- dataset[perc.genes, ]
     gene <- gene[perc.genes, ]
     
     # Filter samples that express at least 100 genes
-    sample.sum <- apply(data >= min_counts, 2, sum)
-    data <- data[, which(sample.sum > num_genes) ]
+    sample.sum <- apply(dataset >= min_counts, 2, sum)
+    dataset <- dataset[, which(sample.sum > num_genes) ]
     
     # Need the genes to be its own column
-    data <- data.frame(gene, data)
+    dataset <- data.frame(gene, dataset)
     
-    return(data)
+    return(dataset)
 }

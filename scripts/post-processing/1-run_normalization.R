@@ -175,21 +175,17 @@ for (algorithm in opt$algorithm) {
     } else if (algorithm == "scran") {
         # scater wants the data to be rounded
         data.in <- round(as.matrix(dataset))
-
-        # Turn into a sce
-        sce <- SingleCellExperiment::SingleCellExperiment(list(counts = data.in))
         
         # Make some clusters
-        clusters <- scran::quickCluster(sce, min.size = 100)
-        sce <- scran::computeSumFactors(sce, cluster = clusters)
+        #clusters <- scran::quickCluster(sce, min.size = 100)
+        data.in <- scran::computeSumFactors(data.in)
         
         # Normalize the data
-        sce <- scater::normalize(sce)
+        sce <- scater::normalize(data.in)
         
         # Convert to edgeR so we can extract the data as a matrix more easily
         data.dge <- scran::convertTo(sce, type = "edgeR")
-        data.out <- as.data.frame(edgeR::cpm(data.dge, normalized.lib.sizes = TRUE,
-                                             log = TRUE))
+        data.out <- as.data.frame(data.dge@.Data[[1]])
         title <- "Cluster 'scran' Normalized CPMs"
     }
     # Calculate percent zeroes

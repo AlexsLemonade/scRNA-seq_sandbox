@@ -16,20 +16,14 @@ source(file.path("scripts", "util", "data_prep_functions.R"))
 
 ```{r Import data}
 # Import gene expression matrix data
-data <- readr::read_tsv(file.path("darmanis_data", "darmanis_data_counts.tsv"), 
-                        progress = FALSE)
+dataset <- readr::read_tsv(file.path("darmanis_data", "darmanis_counts.tsv"), 
+                           progress = FALSE, guess_max = 10000)
 ```
 
 ### Import metadata
 ```{r Set up metadata}
-if (file.exists(file.path("darmanis_data", "meta_data.csv"))) {
-# Read in csv if it's been made, if not read in from GEOquery
-  geo.meta <- read.csv(file.path("darmanis_data", "meta_data.csv"), 
-                       stringsAsFactors = FALSE)
-} else {
-  geo.meta <- GEOquery::getGEO("GSE84465", destdir = "darmanis_data")
-  geo.meta <- data.frame(geo.meta[[1]]@phenoData@data)
-}
+geo.meta <- GEOquery::getGEO("GSE84465", destdir = "darmanis_data")
+geo.meta <- data.frame(geo.meta[[1]]@phenoData@data)
 ```
 
 ### Make sure the samples and the metadata are in the same order.
@@ -42,10 +36,10 @@ convert.key <- as.list(as.character(id.key$gsm.ids))
 names(convert.key) <- as.character(id.key$run)
 
 # Obtain GSM ids using conversion key and make these the column names 
-colnames(data) <- dplyr::recode(colnames(data), !!!convert.key)
+colnames(dataset) <- dplyr::recode(colnames(dataset), !!!convert.key)
 
-# Filter out samples not in the data
-geo.meta <- geo.meta[match(colnames(data)[-1], geo.meta$geo_accession), ]
+# Filter out samples not in the dataset
+geo.meta <- geo.meta[match(colnames(dataset)[-1], geo.meta$geo_accession), ]
 ```
 
 ### Filtering genes and samples
@@ -53,7 +47,7 @@ Filter out genes that don't have at least one count in 1% of cells and filter ou
 samples that don't express at least 100 genes. This function assumes the first 
 column holds the genes.
 ```{r Filter out genes}
-prepped.data <- GeneMatrixFilter(data, min_counts = 1, perc_genes = 0.01,
+prepped.data <- GeneMatrixFilter(dataset, min_counts = 1, perc_genes = 0.01,
                                  num_genes = 100)
 ```
 
@@ -77,7 +71,6 @@ batch.info <- cbind(geo.meta$geo_accession, geo.meta$plate.id.ch1)
 batch.sum <- summary(as.factor(batch.info[, 2]))
 batch.small <- names(batch.sum)[which(batch.sum <= 2)]
 
-
 # Make a regex statement to exclude these batches of one
 regex <- paste0(paste0("^", batch.small, "$"), collapse = "|")
 batch.info <- batch.info[ -grep(regex, batch.info[, 2]), ]
@@ -97,7 +90,7 @@ geo.meta <- geo.meta[match(colnames(prepped.data)[-1], geo.meta$geo_accession), 
 ```{r Write data file}
 # Write a copy of the counts in the normalized data file
 readr::write_tsv(prepped.data, file.path("darmanis_data", "normalized_darmanis",
-                                         "counts_darmanis.tsv"))
+                                         "filtered_counts_darmanis.tsv"))
 ```
 
 ### Make batch file if you want to correct by batches

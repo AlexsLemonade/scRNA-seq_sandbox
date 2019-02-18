@@ -92,7 +92,7 @@ tx.counts <- tximport::tximport(quant.files, type = "salmon",
 
 # Save to RDS file temporarily
 # saveRDS(tx.counts, "tximport_obj.RDS")
-tx.counts <- readRDS("tximport_obj.RDS")
+# tx.counts <- readRDS("tximport_obj.RDS")
 
 # Make as a dataframe
 tx.counts <- data.frame(tx.counts$counts, stringsAsFactors = FALSE)
@@ -117,7 +117,7 @@ dev.off()
 tx.counts <- tx.counts[, which(salmon.prop.assigned > opt$mapped)]
 
 # Make a gene column so read_tsv will have the info
-tx.counts$gene <- rownames(tx.counts)
+tx.counts <- tx.counts %>% tibble::rownames_to_column("gene")
 
 # Save to tsv file
 readr::write_tsv(tx.counts, file.path(opt$output,
