@@ -54,11 +54,6 @@ option_list <- list(
 # Parse options
 opt <- parse_args(OptionParser(option_list = option_list))
 
-opt$dir <- "darmanis_data/salmon_quants"
-opt$output <- "darmanis_data"
-opt$mapped <- 0.5 
-opt$label <- "darmanis"
-
 # Add an underscore if label is specified
 if (!is.null(opt$label)){
   opt$label <- paste0(opt$label, "_")
@@ -81,22 +76,29 @@ transcripts.wout.ver <- gsub("\\.[0-9]*$", "", transcripts$Name)
 
 # Turn transcript ids to gene ids
 tx.gene.key <- data.frame('transcript' = transcripts$Name,
-                          'gene' = mapIds(org.Hs.eg.db, keys = transcripts.wout.ver,
-                                         column = "ENSEMBL", keytype = "ENSEMBLTRANS"),
+                          'gene' = mapIds(org.Hs.eg.db, 
+                                          keys = transcripts.wout.ver,
+                                          column = "ENSEMBL", 
+                                          keytype = "ENSEMBLTRANS"),
                           stringsAsFactors = FALSE)
 
 # Remove transcripts without genes
 tx.gene.key <- tx.gene.key[!is.na(tx.gene.key$gene),]
 
 # Do the thing
-tx.counts <- tximport::tximport(quant.files, type = "salmon", tx2gene = tx.gene.key,
+tx.counts <- tximport::tximport(quant.files, type = "salmon", 
+                                tx2gene = tx.gene.key,
                                 countsFromAbundance = "no")
+
+# Save to RDS file temporarily
+# saveRDS(tx.counts, "tximport_obj.RDS")
+tx.counts <- readRDS("tximport_obj.RDS")
 
 # Make as a dataframe
 tx.counts <- data.frame(tx.counts$counts, stringsAsFactors = FALSE)
 
-# Save to RDS file temporarily
-saveRDS(tx.counts, "tximport_obj.RDS")
+# Bring the sample names with
+colnames(tx.counts) <- sample.names
 
 #---------------------Salmon proportion of mapped reads------------------------#
 # Get the proportion of mapped reads by reading the meta files
@@ -114,9 +116,10 @@ dev.off()
 # Filter out samples with too low of mapped reads
 tx.counts <- tx.counts[, which(salmon.prop.assigned > opt$mapped)]
 
-# Make these numbers round
-tx.counts <- tx.counts %>% mutate_all(round)
+# Make a gene column so read_tsv will have the info
+tx.counts$gene <- rownames(tx.counts)
 
 # Save to tsv file
 readr::write_tsv(tx.counts, file.path(opt$output,
                                       paste0(opt$label, "counts.tsv")))
+
