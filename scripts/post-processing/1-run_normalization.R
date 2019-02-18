@@ -59,7 +59,7 @@ option_list <- list(
   make_option(opt_str = c("-l", "--label"), type = "character",
               default = "", help = "Optional label for output files",
               metavar = "character"),
-  make_option(opt_str = c("-n", "--negative"), type = "store_true",
+  make_option(opt_str = c("-n", "--negative"), action = "store_true",
               default = FALSE, help = "Option to override scran negative factor 
               warning, remove the problematic genes and normalize")
 )

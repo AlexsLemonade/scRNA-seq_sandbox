@@ -11,8 +11,8 @@ label=darmanis
 
 #-------------------------------Run normalization------------------------------#
 Rscript scripts/post-processing/1-run_normalization.R \
-  -d ${dir}/normalized_${label}/counts_${label}.tsv \
-  -a scran \
+  -d ${dir}/normalized_${label}/filtered_counts_${label}.tsv \
+  -a all \
   -o ${dir}/normalized_${label} \
   -l ${label}
 
