@@ -34,7 +34,7 @@ cd ${dir}
 # Download each sample in the supplied list.
 for line in `cat SRR_Acc_List_TabMur.txt`
   do
-  fastq-dump --split-3 $line
+  fasterq-dump --split-3 $line
   done
   
 #--------------Will run setup only if it hasn't been ran before----------------#

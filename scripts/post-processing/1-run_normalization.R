@@ -61,11 +61,6 @@ option_list <- list(
 # Parse options
 opt <- parse_args(OptionParser(option_list = option_list))
 
-opt$data <- "darmanis_data/normalized_darmanis/counts_darmanis.tsv"
-opt$algorithm <- "scran"
-opt$output <- "darmanis_data/normalized_darmanis"
-opt$label <- "darmanis"
-  
 # Stop if no input data matrix is specified
 if (opt$data == "none") {
     stop("Error: no specified input gene matrix file. Use option -d to specify
@@ -103,7 +98,7 @@ if (any(is.na(match(opt$algorithm, all.algorithms)))) {
 }
 #----------------------------------Load data-----------------------------------#
 # Read in a tsv file of data
-dataset <- readr::read_tsv(opt$data)
+dataset <- readr::read_tsv(opt$data, guess_max = 10000)
 
 # Find which column has gene info
 gene.col <- grep("gene", colnames(dataset), ignore.case = TRUE)
@@ -119,6 +114,14 @@ genes <- dataset[, gene.col]
 
 # Make dataset the data only
 dataset <- dataset[, -gene.col]
+
+# Turn NAs into zeroes if NAs exist
+if (any(is.na(dataset))) {
+  num.nas <- length(is.na(dataset))
+  message(paste("Warning: there are", num.nas, 
+                "NA's in your dataset. Turning them into zeroes."))
+  dataset <- dplyr::mutate_all(dataset, zoo::na.aggregate)
+}
 
 #-----------------------Run each algorithm in the list-------------------------#
 # For each algorithm, run through this loop
@@ -137,6 +140,7 @@ for (algorithm in opt$algorithm) {
         title <- "Log2 Expression"
 
     } else  if (algorithm == "voom") {
+        # Quantile normalization using limma
         data.out <- as.data.frame(limma::voom(counts = dataset,
                                               normalize.method = "quantile",
                                               plot = FALSE)$E)
@@ -162,16 +166,31 @@ for (algorithm in opt$algorithm) {
         data.colData <- data.frame(row.names = colnames(dataset))
         data.dds <- DESeq2::DESeqDataSetFromMatrix(dataset, colData = data.colData,
                                                    design = ~1)
+        
+        # This takes more time than the other methods:
         data.out <- SummarizedExperiment::assay(
                     DESeq2::varianceStabilizingTransformation(data.dds,
                                                               blind = TRUE))
         title <- "Log2 Expression (varianceStabilizingTransformation - DEseq2)"
     } else if (algorithm == "scran") {
-        data.in <- as.matrix(dataset)
-        dimnames(data.in)[[1]] <- genes$gene
-        data.sce <- SingleCellExperiment::SingleCellExperiment(list(counts = data.in))
-        clusters <- scran::quickCluster(data.sce, min.size = 100)
-        data.out <- scran::computeSumFactors(data.in, cluster = clusters)
+        # scater wants the data to be rounded
+        data.in <- round(as.matrix(dataset))
+
+        # Turn into a sce
+        sce <- SingleCellExperiment::SingleCellExperiment(list(counts = data.in))
+        
+        # Make some clusters
+        clusters <- scran::quickCluster(sce, min.size = 100)
+        sce <- scran::computeSumFactors(sce, cluster = clusters)
+        
+        # Normalize the data
+        sce <- scater::normalize(sce)
+        
+        # Convert to edgeR so we can extract the data as a matrix more easily
+        data.dge <- scran::convertTo(sce, type = "edgeR")
+        data.out <- as.data.frame(edgeR::cpm(data.dge, normalized.lib.sizes = TRUE,
+                                             log = TRUE))
+        title <- "Cluster 'scran' Normalized CPMs"
     }
     # Calculate percent zeroes
     perc.zero <- round(length(which(data.out == 0)) / length(as.matrix(data.out)), 3)
