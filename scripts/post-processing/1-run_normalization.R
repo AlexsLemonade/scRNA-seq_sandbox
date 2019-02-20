@@ -61,11 +61,17 @@ option_list <- list(
               metavar = "character"),
   make_option(opt_str = c("-n", "--negative"), action = "store_true",
               default = FALSE, help = "Option to override scran negative factor 
-              warning, remove the problematic genes and normalize")
+              warning, remove the problematic samples from dataset alltogether
+              and then normalize")
 )
 
 # Parse options
 opt <- parse_args(OptionParser(option_list = option_list))
+
+opt$data <- file.path("darmanis_data", "filtered_counts_darmanis.tsv")
+opt$algorithm <- "scran"
+opt$output <- "darmanis_data/normalized_darmanis"
+opt$label <- "darmanis" 
 
 # Stop if no input data matrix is specified
 if (opt$data == "none") {
@@ -86,7 +92,7 @@ if (opt$label != "") {
 
 #---------------------------Set up algorithms to run---------------------------#
 # List all the supported algorithms
-all.algorithms <- c('scale', 'log', 'voom','tmm', 'deseq2', 'vsd', 'scran')
+all.algorithms <- c('scran', 'scale', 'log', 'voom','tmm', 'deseq2', 'vsd')
 
 # If "all" is chosen, put all the normalization methods in list
 if (opt$algorithm == "all") {
@@ -94,6 +100,11 @@ if (opt$algorithm == "all") {
 } else {
     # Separate if multiple algorithms have been requested
     opt$algorithm <- unlist(strsplit(opt$algorithm, " "))
+    
+    # If scran is in the list, make sure it is the first one to be run
+    if ('scran' %in% opt$algorithm) {
+      opt$algorithm <- c("scran", opt$algorithm[which(opt$algorithm != "scran")])
+    }
 }
 
 # Check that the algorithms chosen are in the supported list
@@ -132,107 +143,118 @@ if (any(is.na(dataset))) {
 #-----------------------Run each algorithm in the list-------------------------#
 # For each algorithm, run through this loop
 for (algorithm in opt$algorithm) {
-
-    # Print out progress message:
-    cat("\n \n Running:", algorithm, "...")
-
-    # Run normalization algorithms
-    if (algorithm  == "scale"){
-        data.out <- as.data.frame(scale(dataset))
-        title <- "Scaled Expression"
-
-    } else  if (algorithm == "log") {
-        data.out <- sign(dataset) * log2(1 + abs(dataset))
-        title <- "Log2 Expression"
-
-    } else  if (algorithm == "voom") {
-        # Quantile normalization using limma
-        data.out <- as.data.frame(limma::voom(counts = dataset,
-                                              normalize.method = "quantile",
-                                              plot = FALSE)$E)
-        title <- "Log2 Expression (Voom)"
-
-    } else if (algorithm == "tmm") {
-        data.dge <- edgeR::DGEList(counts = dataset)
-        data.dge <- edgeR::calcNormFactors(data.dge)
-        data.out <- as.data.frame(edgeR::cpm(data.dge, normalized.lib.sizes = TRUE,
-                                             log = TRUE))
-        title <- "Log2 Expression (TMM / edgeR)"
-
-    } else if (algorithm == "deseq") {
-        data.colData <- data.frame(row.names = colnames(dataset))
-        data.dds <- DESeq2::DESeqDataSetFromMatrix(dataset, colData = data.colData,
-                                                   design = ~1)
-        data.dds <- DESeq2::estimateSizeFactors(data.dds)
-        data.out <- as.data.frame(DESeq2::counts(data.dds, normalized = TRUE))
-        data.out <- sign(data.out) * log2(1 + abs(data.out))
-        title <- "Log2 Expression (DEseq2)"
-
-    } else if (algorithm == "vsd") {
-        data.colData <- data.frame(row.names = colnames(dataset))
-        data.dds <- DESeq2::DESeqDataSetFromMatrix(dataset, colData = data.colData,
-                                                   design = ~1)
+  
+  # Print out progress message:
+  cat("\n \n Running:", algorithm, "...")
+  
+  # Run normalization algorithms
+  if (algorithm == "scran") {
+    
+    # scater wants the data to be rounded
+    sce <- SingleCellExperiment::SingleCellExperiment(list(counts = round(as.matrix(dataset))))
+    
+    # Make some clusters
+    sce <- suppressWarnings(scran::computeSumFactors(sce))
+    neg.fact <- which(sce@int_colData@listData$size_factor < 0)
+    
+    # Dealing with negative size factors:
+    if (length(neg.fact) < 100) {
+      message(paste(length(neg.fact), "negative size factors from
+                    scran::computeSizeFactors calculations were found.
+                    These samples will be removed from normalization output."))
+      
+      # Remove these samples from final output as well as the original dataset
+      sce <- sce[, -neg.fact]
+      dataset <- dataset[, -neg.fact]
+      
+    } else {
+      if (!opt$negative) {
+        warning(paste("Stopping scran normalization. There are",
+                      length(neg.fact),
+                      "negative size factors from scran::computeSizeFactors 
+                       calculations. Arbitrary cutoff is set at 100. Use -n to 
+                       override, remove these samples, and normalize anyway."))
+      } else {
+        message(paste("Option -n is being used. ", length(neg.fact),
+                      " samples are being removed because they have negative size 
+                       factors due to heavy zero inflation."))
         
-        # This takes more time than the other methods:
-        data.out <- SummarizedExperiment::assay(
-                    DESeq2::varianceStabilizingTransformation(data.dds,
-                                                              blind = TRUE))
-        title <- "Log2 Expression (varianceStabilizingTransformation - DEseq2)"
-    } else if (algorithm == "scran") {
-        # scater wants the data to be rounded
-        sce <- SingleCellExperiment::SingleCellExperiment(list(
-                                                              counts = round(as.matrix(dataset))))
+        # Remove these samples from final output as well as the original dataset
+        sce <- sce[, -neg.fact]
+        dataset <- dataset[, -neg.fact]
         
-        # Make some clusters
-        sce <- suppressWarnings(scran::computeSumFactors(sce))
-        neg.fact <- which(sce@int_colData@listData$size_factor < 0)
+        # Write copy of counts to file 
+        readr::write_tsv(dataset, file.path(opt$output, "matching_counts.tsv"))
         
-        # Dealing with negative size factors:
-        if (length(neg.fact) < 100) {
-          message(paste(length(neg.fact), "negative size factors from 
-                        scran::computeSizeFactors calculations were found. 
-                        These genes will be removed from normalization output.")) 
-          sce <- sce[, -neg.fact]
-        } else {
-          if (!opt$negative) {
-          warning(paste("Stopping scran normalization. 
-                         There are", length(neg.fact), "negative size factors from 
-                         scran::computeSizeFactors calculations. 
-                         Arbitrary cutoff is set at 100. 
-                         Use -n to override, remove these genes, and 
-                         normalize anyway.")) 
-          } else {
-            message(paste("Option -n is being used. ", length(neg.fact), " genes
-                          are being removed because they have negative size factors
-                          due to heavy zero inflation."))
-            sce <- sce[, -neg.fact]
-          }
-        }
-        # Normalize the data
-        sce <- scater::normalize(sce)
-        
-        # Convert to edgeR so we can extract the data as a matrix more easily
-        data.dge <- scran::convertTo(sce, type = "edgeR")
-        data.out <- as.data.frame(edgeR::cpm(data.dge, normalized.lib.sizes = TRUE,
-                                             log = TRUE))
-        title <- "Cluster 'scran' Normalized CPMs"
+      }
     }
-    # Calculate percent zeroes
-    perc.zero <- round(length(which(data.out == 0)) / length(as.matrix(data.out)), 3)
-
-    # Build output file name:
-    output.file <- file.path(opt$output, paste0(algorithm, opt$label, ".tsv"))
-
-    # Print out summary:
-    cat("\n normalization method:", title,
-        "\n number of genes:", nrow(data.out),
-        "\n number of cells:", ncol(data.out),
-        "\n percent zeroes:", perc.zero,
-        "\n\n results file:", output.file)
-
-    # Save normalized data to a tsv file
-    data.out <- data.frame(genes, data.out)
-
-    # Save normalized data to a tsv file
-    readr::write_tsv(data.out, output.file)
+    # Normalize the data
+    sce <- scater::normalize(sce)
+    
+    # Convert to edgeR so we can extract the data as a matrix more easily
+    data.dge <- scran::convertTo(sce, type = "edgeR")
+    data.out <- as.data.frame(edgeR::cpm(data.dge, normalized.lib.sizes = TRUE,
+                                         log = TRUE))
+    title <- "Cluster 'scran' Normalized CPMs"
+    
+  } else if (algorithm  == "scale") {
+    data.out <- as.data.frame(scale(dataset))
+    title <- "Scaled Expression"
+    
+  } else  if (algorithm == "log") {
+    data.out <- sign(dataset) * log2(1 + abs(dataset))
+    title <- "Log2 Expression"
+    
+  } else  if (algorithm == "voom") {
+    # Quantile normalization using limma
+    data.out <- as.data.frame(limma::voom(counts = dataset, 
+                                          normalize.method = "quantile",
+                                          plot = FALSE)$E)
+    title <- "Log2 Expression (Voom)"
+    
+  } else if (algorithm == "tmm") {
+    data.dge <- edgeR::DGEList(counts = dataset)
+    data.dge <- edgeR::calcNormFactors(data.dge)
+    data.out <- as.data.frame(edgeR::cpm(data.dge, normalized.lib.sizes = TRUE,
+                                         log = TRUE))
+    title <- "Log2 Expression (TMM / edgeR)"
+    
+  } else if (algorithm == "deseq") {
+    data.colData <- data.frame(row.names = colnames(dataset))
+    data.dds <- DESeq2::DESeqDataSetFromMatrix(dataset, colData = data.colData,
+                                               design = ~ 1)
+    data.dds <- DESeq2::estimateSizeFactors(data.dds)
+    data.out <- as.data.frame(DESeq2::counts(data.dds, normalized = TRUE))
+    data.out <- sign(data.out) * log2(1 + abs(data.out))
+    title <- "Log2 Expression (DEseq2)"
+    
+  } else if (algorithm == "vsd") {
+    data.colData <- data.frame(row.names = colnames(dataset))
+    data.dds <- DESeq2::DESeqDataSetFromMatrix(dataset, colData = data.colData,
+                                               design = ~ 1)
+    
+    # This takes more time than the other methods:
+    data.out <- SummarizedExperiment::assay(
+      DESeq2::varianceStabilizingTransformation(data.dds, blind = TRUE))
+    title <- "Log2 Expression (varianceStabilizingTransformation - DEseq2)"
+  }
+  
+  # Calculate percent zeroes
+  perc.zero <- round(length(which(data.out == 0)) / length(as.matrix(data.out)), 3)
+  
+  # Build output file name:
+  output.file <- file.path(opt$output, paste0(algorithm, opt$label, ".tsv"))
+  
+  # Print out summary:
+  cat("\n normalization method:", title,
+      "\n number of genes:", nrow(data.out),
+      "\n number of cells:", ncol(data.out),
+      "\n percent zeroes:", perc.zero,
+      "\n\n results file:", output.file)
+  
+  # Tack on the gene column
+  data.out <- data.frame(genes, data.out)
+  
+  # Save normalized data to a tsv file
+  readr::write_tsv(data.out, output.file)
 }

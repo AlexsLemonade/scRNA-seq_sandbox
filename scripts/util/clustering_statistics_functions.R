@@ -21,6 +21,7 @@ DimPlot <- function(feature, metadata, xlabel = "x dim", ylabel = "y dim",
   #  scatterplot with labels of the metadata provided
   library(ggplot2)
   
+  
   # Make metadata a factor if it is not
   feature <- data.frame("x_data" = feature[, 1],
                         "y_data" = feature[, 2],
@@ -29,7 +30,6 @@ DimPlot <- function(feature, metadata, xlabel = "x dim", ylabel = "y dim",
   # Make a scatter plot with the labels our metadata
   plot.data <- ggplot(feature, aes(x = x_data, y = y_data, group = metadata)) +
                geom_point(aes(colour = metadata)) + 
-               colorblindr::scale_fill_OkabeIto() +
                xlab(xlabel) +
                ylab(ylabel) +
                ggtitle(name) 

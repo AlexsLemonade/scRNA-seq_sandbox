@@ -44,9 +44,9 @@ option_list <- list(
               only the metadata variables you wish to test and label by.",
               metavar = "character"),
   make_option(opt_str = c("-r", "--reduce"), type = "character",
-              default = "none", help = "Dimension reduction technique to use.
-              Options are: 'pca', 'tsne', or 'umap' If none is given, full 
-              datasets will be used.", metavar = "character"),
+              default = "pca", help = "Dimension reduction technique to use.
+              Options are: 'pca', 'tsne', or 'umap'. Default is pca.",
+              metavar = "character"),
   make_option(opt_str = c("-o", "--output"), type = "character",
               default = getwd(), help = "Directory where you would like the
               output to go", metavar = "character"),
@@ -57,6 +57,12 @@ option_list <- list(
 
 # Parse options
 opt <- parse_args(OptionParser(option_list = option_list))
+
+opt$data <- "darmanis_data/normalized_darmanis"
+opt$metadata <- "darmanis_data/metadata.tsv"
+opt$output <- "results/darmanis_pca"
+opt$reduce <- "pca"
+opt$label <- "darmanis"
 
 #--------------------------------Set up options--------------------------------#
 # Check that the dimension reduction option given is supported
@@ -81,7 +87,7 @@ if (opt$label != "") {
 dataset.files <- dir(opt$data, full.names = TRUE)
 
 # Read in each of the normalization files
-datasets <- lapply(dataset.files, readr::read_tsv)
+datasets <- lapply(dataset.files, readr::read_tsv, guess_max = 10000)
 
 # Get names of datasets
 dataset.names <- dir(opt$data)

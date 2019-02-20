@@ -89,7 +89,7 @@ geo.meta <- geo.meta[match(colnames(prepped.data)[-1], geo.meta$geo_accession), 
 ### Write counts data file
 ```{r Write data file}
 # Write a copy of the counts in the normalized data file
-readr::write_tsv(prepped.data, file.path("darmanis_data", "normalized_darmanis",
+readr::write_tsv(prepped.data, file.path("darmanis_data", 
                                          "filtered_counts_darmanis.tsv"))
 ```
 
