@@ -54,6 +54,11 @@ option_list <- list(
 # Parse options
 opt <- parse_args(OptionParser(option_list = option_list))
 
+opt$dir <- "darmanis_data/salmon_quants"
+opt$output <- "darmanis_data"
+opt$mapped <- 0.3
+opt$label <- "darmanis_data"
+
 # Add an underscore if label is specified
 if (!is.null(opt$label)){
   opt$label <- paste0(opt$label, "_")
@@ -91,7 +96,7 @@ tx.counts <- tximport::tximport(quant.files, type = "salmon",
                                 countsFromAbundance = "no")
 
 # Save to RDS file temporarily
-# saveRDS(tx.counts, "tximport_obj.RDS")
+saveRDS(tx.counts, "tximport_obj.RDS")
 # tx.counts <- readRDS("tximport_obj.RDS")
 
 # Make as a dataframe

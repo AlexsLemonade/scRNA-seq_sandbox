@@ -7,7 +7,8 @@
 #        info as the first column with gene info column labeled with the word 
 #        'gene' in it
 # "-m" : Path to metadata file that contains only the metadata variables you 
-#        wish to test and label by.
+#        wish to test and label by. First column must contain the sample names
+#        that are in the datasets
 # "-r" : Dimension reduction technique to use. Options are: 'pca', 'tsne', or 
 #        'umap'
 # "-o" : Directory where you would like the output to go. Default is current 
@@ -41,7 +42,8 @@ option_list <- list(
               metavar = "character"),
   make_option(opt_str = c("-m", "--metadata"), type = "character",
               default = "none", help = "Path to metadata file that contains 
-              only the metadata variables you wish to test and label by.",
+              only the metadata variables you wish to test and label by. First
+              column must contain the sample names that are in the datasets",
               metavar = "character"),
   make_option(opt_str = c("-r", "--reduce"), type = "character",
               default = "pca", help = "Dimension reduction technique to use.
@@ -150,13 +152,16 @@ dim.red.data <- lapply(datasets, function(dataset) {
 
 #-----------------------Plot with metadata variable labels---------------------#
 # Read in the metadata
-meta <- as.list(readr::read_tsv(opt$metadata))
+meta <- readr::read_tsv(opt$metadata) %>% 
+  dplyr::filter(geo_accession %in% colnames(datasets[[1]])) %>% 
+  dplyr::mutate_all(as.factor) %>% 
+  as.list() 
 
 # Obtain variable names from metadata import
 variable.names <- gsub(".ch1", "", names(meta))
 variable.names <- gsub("\\.", "_", variable.names)
 
-for (variable in 1:length(meta)) {
+for (variable in 2:length(meta)) {
   # Plot with metadata labels
   metadata.plots <- lapply(dim.red.data, function(dataset) {
   
@@ -179,9 +184,9 @@ for (variable in 1:length(meta)) {
 
   # Put all plots and legend together
   main.plot <- cowplot::plot_grid(cowplot::plot_grid(plotlist = metadata.plots,
-                                                    ncol = 2, align = 'hv'),
+                                                     ncol = 2, align = 'hv'),
                                   cowplot::plot_grid(NULL, legend, ncol = 2),
-                                  rel_widths=c(1, 0.2))
+                                  rel_widths = c(1, 0.2))
 
   # Save to png
   ggplot2::ggsave(plot = main.plot, 

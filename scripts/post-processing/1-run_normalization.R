@@ -69,7 +69,7 @@ option_list <- list(
 opt <- parse_args(OptionParser(option_list = option_list))
 
 opt$data <- file.path("darmanis_data", "filtered_counts_darmanis.tsv")
-opt$algorithm <- "scran"
+opt$algorithm <- "all"
 opt$output <- "darmanis_data/normalized_darmanis"
 opt$label <- "darmanis" 
 
@@ -182,12 +182,13 @@ for (algorithm in opt$algorithm) {
         # Remove these samples from final output as well as the original dataset
         sce <- sce[, -neg.fact]
         dataset <- dataset[, -neg.fact]
-        
-        # Write copy of counts to file 
-        readr::write_tsv(dataset, file.path(opt$output, "matching_counts.tsv"))
-        
       }
     }
+    if (length(neg.fact) > 0) {
+      # Write copy of counts to file 
+      readr::write_tsv(dataset, file.path(opt$output, "matching_counts.tsv"))
+    }
+    
     # Normalize the data
     sce <- scater::normalize(sce)
     
@@ -224,8 +225,8 @@ for (algorithm in opt$algorithm) {
     data.dds <- DESeq2::DESeqDataSetFromMatrix(dataset, colData = data.colData,
                                                design = ~ 1)
     data.dds <- DESeq2::estimateSizeFactors(data.dds)
-    data.out <- as.data.frame(DESeq2::counts(data.dds, normalized = TRUE))
-    data.out <- sign(data.out) * log2(1 + abs(data.out))
+    data.out <- as.data.frame(DESeq2::counts(data.dds, normalized = TRUE)) 
+    data.out <- sign(data.out) * log2(1 + abs(data.out)) %>% d
     title <- "Log2 Expression (DEseq2)"
     
   } else if (algorithm == "vsd") {
@@ -258,3 +259,4 @@ for (algorithm in opt$algorithm) {
   # Save normalized data to a tsv file
   readr::write_tsv(data.out, output.file)
 }
+
