@@ -28,7 +28,7 @@ GeneMatrixFilter <- function(dataset, min_counts = 1, perc_genes = 0.01, num_gen
     
     # Find genes that are expressed in 1% of cells
     gene.sum <- apply(dataset >= min_counts, 1, sum)
-    perc.genes <- which(gene.sum > ncol(data)*perc_genes)
+    perc.genes <- which(gene.sum > ncol(dataset)*perc_genes)
     
     # Only keep those genes
     dataset <- dataset[perc.genes, ]
