@@ -81,4 +81,8 @@ Rscript scripts/pre-processing/2-get_fastqc_reports.R \
   -o results
 
 #-------------Make a gene matrix out of the Salmon quantification data---------#
- 
+Rscript scripts/pre-processing/3-make_gene_matrix.R \
+  -d ${dir}/salmon_quants \
+  -o ${dir} \
+  -m 0.3 \
+  -l ${dir}

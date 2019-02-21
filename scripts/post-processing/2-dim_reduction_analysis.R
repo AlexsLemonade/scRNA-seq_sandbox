@@ -60,12 +60,6 @@ option_list <- list(
 # Parse options
 opt <- parse_args(OptionParser(option_list = option_list))
 
-opt$data <- "darmanis_data/normalized_darmanis"
-opt$metadata <- "darmanis_data/metadata.tsv"
-opt$output <- "results/darmanis_pca"
-opt$reduce <- "pca"
-opt$label <- "darmanis"
-
 #--------------------------------Set up options--------------------------------#
 # Check that the dimension reduction option given is supported
 if (!(opt$reduce %in% c("tnse", "pca", "umap"))){

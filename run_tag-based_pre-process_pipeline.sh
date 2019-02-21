@@ -5,8 +5,8 @@
 # Purpose: running the pre-processing steps for tag-based single cell RNA-seq data.
 # 
 # Change your directory name and desired labels here.
-dir=tabula_muris_data
-label=tabula_muris
+dir=pbmc_10k_data
+label=pbmc_10k
 
 #----------------------------Make directories---------------------------------#
 mkdir ${dir}
@@ -23,20 +23,6 @@ cd ${dir}
 #curl -O http://s3-us-west-2.amazonaws.com/10x.files/samples/cell-exp/3.0.0/pbmc_10k_v3/pbmc_10k_v3_fastqs.tar
 #tar -xvf pbmc_10k_v3_fastqs.tar
 
-# If downloading from NCBI's SRR run selector, use this: 
-# Rscript scripts/pre-processing/0-get_sample_download_list.R \
-#  -i ${SRP} \
-#  -o results \
-#  -d ${dir}/salmon_quants \
-#  -q ref_files/SRAmetadb.sqlite
-
-#------------------------------------------------------------------------------#
-# Download each sample in the supplied list.
-for line in `cat SRR_Acc_List_TabMur.txt`
-  do
-  fasterq-dump --split-3 $line
-  done
-  
 #--------------Will run setup only if it hasn't been ran before----------------#
 # Will check for genome index first before running
 if [ ! -e ref_files/human_index ]; then

@@ -93,15 +93,9 @@ RUN cd /tmp/ && \
 	tar -xzvf cellranger-3.0.2.tar.gz && \
 	rm -f cellranger-3.0.2.tar.gz
 
-# path
 ENV PATH /opt/cellranger-3.0.2:$PATH
 
+# Install bamtofastq convert
 RUN wget http://cf.10xgenomics.com/misc/bamtofastq && \
     chmod 700 bamtofastq
-
-
-
-
-
-
 

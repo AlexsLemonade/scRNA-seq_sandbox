@@ -12,6 +12,10 @@
 #        'genes' (not case sensitive)",
 # '-a' : Normalization method to use. To run all methods use "all", to run more
 #        than one method, separate the names by a space. eg -a tmm log
+#        If scran is one of the methods chosen, it will be ran first because 
+#        samples with negative factor sizes will need to be removed. To make it
+#        parallel with the other methods, those same samples will be removed 
+#        from the dataset before other normalization methods are run. 
 #        Options:
 #           'scale'- scale and center each sample's data using base::scale
 #           'log'- just log transform alone
@@ -49,7 +53,7 @@ option_list <- list(
               metavar = "character"),
   make_option(opt_str = c("-a", "--algorithm"), type = "character",
               default = "none", help = "Normalization method to use. Options:
-              'scale', log', 'voom', 'deseq2', 'vsd', , 'tmm', 'scram' or use 
+              'scale', log', 'voom', 'deseq2', 'vsd', , 'tmm', 'scran' or use 
               'all' to run all algorithms. If multiple methods are wanted, 
               separate with a space eg: 'log voom'",
               metavar = "character"),
@@ -61,17 +65,12 @@ option_list <- list(
               metavar = "character"),
   make_option(opt_str = c("-n", "--negative"), action = "store_true",
               default = FALSE, help = "Option to override scran negative factor 
-              warning, remove the problematic samples from dataset alltogether
+              warning, and remove the problematic samples from dataset anyway
               and then normalize")
 )
 
 # Parse options
 opt <- parse_args(OptionParser(option_list = option_list))
-
-opt$data <- file.path("darmanis_data", "filtered_counts_darmanis.tsv")
-opt$algorithm <- "all"
-opt$output <- "darmanis_data/normalized_darmanis"
-opt$label <- "darmanis" 
 
 # Stop if no input data matrix is specified
 if (opt$data == "none") {

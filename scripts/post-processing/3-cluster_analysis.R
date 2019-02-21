@@ -59,11 +59,6 @@ option_list <- list(
 # Parse options
 opt <- parse_args(OptionParser(option_list = option_list))
 
-opt$data <- "results/darmanis_pca"
-opt$metadata <- "darmanis_data/filtered_metadata.tsv"
-opt$label <- "darmanis"
-opt$output <- "results/pca_results"
-
 # Create the output for results folder if it does not exist
 if (!dir.exists(opt$output)) {
   message(paste("Output folder:", opt$output, "does not exist, creating one"))
