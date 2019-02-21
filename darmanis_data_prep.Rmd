@@ -105,7 +105,7 @@ readr::write_tsv(data.frame(batch.info),
 ### Write metadata info to be used later
 ```{r Write batch file}
 # Write metadata file for subsequent testing
-geo.meta %>% dplyr::select("cell.type.ch1", "plate.id.ch1") %>%
+geo.meta %>% dplyr::select("geo_accession", "cell.type.ch1", "plate.id.ch1") %>%
              readr::write_tsv(file.path("darmanis_data", "metadata.tsv"))
 ```
 

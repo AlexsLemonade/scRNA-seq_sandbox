@@ -155,7 +155,11 @@ dim.red.data <- lapply(datasets, function(dataset) {
 meta <- readr::read_tsv(opt$metadata) %>% 
   dplyr::filter(geo_accession %in% colnames(datasets[[1]])) %>% 
   dplyr::mutate_all(as.factor) %>% 
+  dplyr::select(-geo_accession) %>%
   as.list() 
+
+# Write this metadata file as it's own thing
+meta %>% as.data.frame() %>% readr::write_tsv("filtered_metadata.tsv")
 
 # Obtain variable names from metadata import
 variable.names <- gsub(".ch1", "", names(meta))

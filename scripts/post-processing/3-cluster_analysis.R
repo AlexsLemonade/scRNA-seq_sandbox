@@ -59,6 +59,11 @@ option_list <- list(
 # Parse options
 opt <- parse_args(OptionParser(option_list = option_list))
 
+opt$data <- "results/darmanis_pca"
+opt$metadata <- "darmanis_data/filtered_metadata.tsv"
+opt$label <- "darmanis"
+opt$output <- "results/pca_results"
+
 # Create the output for results folder if it does not exist
 if (!dir.exists(opt$output)) {
   message(paste("Output folder:", opt$output, "does not exist, creating one"))
@@ -96,10 +101,9 @@ names(datasets) <- gsub("\\..*$", "", dataset.names)
 # Read in the metadata
 # This script is generally built on these metadata being from GEO metadata
 # files. 
-meta <- as.list(readr::read_tsv(opt$metadata))
-
-# Make all the metadata into factors
-meta <- lapply(meta, as.factor)
+meta <- readr::read_tsv(opt$metadata) %>% 
+  dplyr::mutate_all(as.factor) %>% 
+  as.list()
 
 # Obtain variable names from metadata import
 variable.names <- gsub(".ch1", "", names(meta))
