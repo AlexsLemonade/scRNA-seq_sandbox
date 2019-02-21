@@ -60,6 +60,12 @@ option_list <- list(
 # Parse options
 opt <- parse_args(OptionParser(option_list = option_list))
 
+opt$data <- "darmanis_data/normalized_darmanis"
+opt$metadata <- "darmanis_data/metadata.tsv"
+opt$output <- "results/darmanis_pca"
+opt$reduce <- "pca"
+opt$label <- "darmanis"
+
 #--------------------------------Set up options--------------------------------#
 # Check that the dimension reduction option given is supported
 if (!(opt$reduce %in% c("tnse", "pca", "umap"))){
@@ -159,7 +165,10 @@ meta %>% as.data.frame() %>% readr::write_tsv("filtered_metadata.tsv")
 variable.names <- gsub(".ch1", "", names(meta))
 variable.names <- gsub("\\.", "_", variable.names)
 
-for (variable in 2:length(meta)) {
+for (variable in 1:length(meta)) {
+  # Start with legend as NULL
+  legend <- NULL
+  
   # Plot with metadata labels
   metadata.plots <- lapply(dim.red.data, function(dataset) {
   
@@ -171,9 +180,9 @@ for (variable in 2:length(meta)) {
             ylabel = paste(opt$reduce, "dim 2"), 
             name = paste0(variable.names[variable], "_", set.name))
   })
-
-  # Extract the legend
-  legend <- cowplot::get_legend(metadata.plots[[1]])
+  
+  # Try to obtain legend if it exists
+  try(legend <- cowplot::get_legend(metadata.plots[[1]]), silent = TRUE) 
 
   # Surpressing the legend in the files
   metadata.plots <- lapply(metadata.plots, function(a.plot) {
