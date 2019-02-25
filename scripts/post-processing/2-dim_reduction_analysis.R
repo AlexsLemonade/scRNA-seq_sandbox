@@ -10,7 +10,7 @@
 #        wish to test and label by. First column must contain the sample names
 #        that are in the datasets
 # "-r" : Dimension reduction technique to use. Options are: 'pca', 'tsne', or 
-#        'umap'
+#        'umap'. Default is pca."
 # "-o" : Directory where you would like the output to go. Default is current 
 #        directory
 # "-l" : Optional label for output files. 
@@ -153,7 +153,10 @@ meta <- readr::read_tsv(opt$metadata) %>%
   as.list() 
 
 # Write this metadata file as it's own thing
-meta %>% as.data.frame() %>% readr::write_tsv("filtered_metadata.tsv")
+meta %>% 
+  as.data.frame() %>% 
+  readr::write_tsv(file.path(opt$output, 
+                             paste0(opt$label, "filtered_metadata.tsv")))
 
 # Obtain variable names from metadata import
 variable.names <- gsub(".ch1", "", names(meta))
