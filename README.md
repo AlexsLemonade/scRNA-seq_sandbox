@@ -3,11 +3,10 @@
 ## About the scripts in this repository:
 
 ### 1) Pre-processing pipeline:
-For starting from scratch with fastq files, an experiment ID or set of SRA's you would like to process into a counts gene matrix file.
-	### A) For Smart-seq2 data or other single cell data that is available on scRNA
-	and not droplet or tag-based
-	### B) For 10X Genomics data (or Drop-seq data)
-
+For starting from scratch with fastq files, an experiment ID or set of SRA's you would like to process into a counts gene matrix file.    
+### A) For Smart-seq2 data or other single cell data that is available on SRA and not droplet or tag-based.   
+### B) For 10X Genomics data (or Drop-seq data).  
+    
 ### 2) Post-processing pipeline:
 For starting from counts gene matrix data file that you would like to normalize and do further analyses on.
 

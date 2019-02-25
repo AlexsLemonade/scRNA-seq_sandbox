@@ -96,10 +96,9 @@ names(datasets) <- gsub("\\..*$", "", dataset.names)
 # Read in the metadata
 # This script is generally built on these metadata being from GEO metadata
 # files. 
-meta <- as.list(readr::read_tsv(opt$metadata))
-
-# Make all the metadata into factors
-meta <- lapply(meta, as.factor)
+meta <- readr::read_tsv(opt$metadata) %>% 
+  dplyr::mutate_all(as.factor) %>% 
+  as.list()
 
 # Obtain variable names from metadata import
 variable.names <- gsub(".ch1", "", names(meta))

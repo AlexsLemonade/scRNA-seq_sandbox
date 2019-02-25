@@ -24,19 +24,18 @@ DimPlot <- function(feature, metadata, xlabel = "x dim", ylabel = "y dim",
   # Make metadata a factor if it is not
   feature <- data.frame("x_data" = feature[, 1],
                         "y_data" = feature[, 2],
-                        "metadata" = as.factor(metadata))
+                        "meta_data" = metadata)
   
   # Make a scatter plot with the labels our metadata
-  plot.data <- ggplot(feature, aes(x = x_data, y = y_data, group = metadata)) +
-               geom_point(aes(colour = metadata)) + 
-               colorblindr::scale_fill_OkabeIto() +
+  plot.data <- ggplot(feature, aes(x = x_data, y = y_data, group = meta_data)) +
+               geom_point(aes(colour = meta_data)) + 
                xlab(xlabel) +
                ylab(ylabel) +
                ggtitle(name) 
   
-  # Don't print legend if there are more than 10 groups, it's just too 
+  # Don't print legend if there are more than 20 groups, it's just too 
   # ridiculously big
-  if (length(unique(metadata)) > 10) {
+  if (length(unique(metadata)) > 20) {
     plot.data <- plot.data + theme(legend.position = "none")
   }
   return(plot.data) 

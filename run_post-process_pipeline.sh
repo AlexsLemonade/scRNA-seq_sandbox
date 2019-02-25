@@ -6,12 +6,12 @@
 # Note that data must be in a gene matrix format for this script to run. 
 
 # Change your directory name, and desired label here. Then run the script.
-dir=pbmc_10k_data
-label=pbmc_10k
+dir=darmanis_data
+label=darmanis
 
 #-------------------------------Run normalization------------------------------#
 Rscript scripts/post-processing/1-run_normalization.R \
-  -d ${dir}/normalized_${label}/counts_${label}.tsv \
+  -d ${dir}/normalized_${label}/filtered_counts_${label}.tsv \
   -a all \
   -o ${dir}/normalized_${label} \
   -l ${label}
@@ -19,7 +19,7 @@ Rscript scripts/post-processing/1-run_normalization.R \
 #------------------------------Dimension reduction-----------------------------#
 Rscript scripts/post-processing/2-dim_reduction_analysis.R \
   -d ${dir}/normalized_${label} \
-  -m ${dir}/sample_key_pbmc.tsv \
+  -m ${dir}/metadata.tsv \
   -r pca \
   -l ${label} \
   -o results/pca_${label} 
@@ -27,7 +27,7 @@ Rscript scripts/post-processing/2-dim_reduction_analysis.R \
 #------------------------------Clustering analysis-----------------------------#
 Rscript scripts/post-processing/3-cluster_analysis.R \
   -d results/pca_${label} \
-  -m ${dir}/sample_key_pbmc.tsv \
+  -m ${dir}/filtered_metadata.tsv \
   -l ${label} \
-  -o results/pca_results 
+  -o results/pca_results_${dir} 
   

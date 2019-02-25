@@ -14,11 +14,14 @@ mkdir ref_files
 mkdir results
 mkdir ${dir}/alevin_output
 mkdir ${dir}/normalized_${label}
+mkdir ${dir}/raw_data
 
 #---------------------------Download the dataset-------------------------------#
 cd ${dir}
-curl -O http://s3-us-west-2.amazonaws.com/10x.files/samples/cell-exp/3.0.0/pbmc_10k_v3/pbmc_10k_v3_fastqs.tar
-tar -xvf pbmc_10k_v3_fastqs.tar
+
+# If downloading from a url, use this: 
+#curl -O http://s3-us-west-2.amazonaws.com/10x.files/samples/cell-exp/3.0.0/pbmc_10k_v3/pbmc_10k_v3_fastqs.tar
+#tar -xvf pbmc_10k_v3_fastqs.tar
 
 #--------------Will run setup only if it hasn't been ran before----------------#
 # Will check for genome index first before running

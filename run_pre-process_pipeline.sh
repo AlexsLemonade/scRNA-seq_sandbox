@@ -84,5 +84,5 @@ Rscript scripts/pre-processing/2-get_fastqc_reports.R \
 Rscript scripts/pre-processing/3-make_gene_matrix.R \
   -d ${dir}/salmon_quants \
   -o ${dir} \
-  -m 0.5 \
+  -m 0.3 \
   -l ${dir}
