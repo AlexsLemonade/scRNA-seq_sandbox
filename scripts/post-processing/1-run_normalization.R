@@ -80,11 +80,6 @@ option_list <- list(
 # Parse options
 opt <- parse_args(OptionParser(option_list = option_list))
 
-opt$data <- file.path("darmanis_data", "filtered_counts_darmanis.tsv")
-opt$algorithm <- "all"
-opt$output <- "darmanis_data/normalized_darmanis"
-opt$label <- "darmanis" 
-
 # Stop if no input data matrix is specified
 if (opt$data == "none") {
     stop("Error: no specified input gene matrix file. Use option -d to specify
