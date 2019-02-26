@@ -37,7 +37,8 @@ RUN apt-get update -qq && apt-get -y --no-install-recommends install \
   Rtsne \
   NMI \
   && R -e "source('https://bioconductor.org/biocLite.R')" \
-  && R -e "BiocInstaller::biocLite(c('ensembldb', 'DESeq2', 'qvalue', 'org.Hs.eg.db', 'org.Dr.eg.db', 'ComplexHeatmap', 'ConsensusClusterPlus', 'SRAdb', 'DBI', 'limma', 'edgeR', 'scran', 'scater'), suppressUpdates = TRUE)"
+  && R -e "BiocInstaller::biocLite(c('ensembldb', 'DESeq2', 'qvalue', 'org.Hs.eg.db', 'org.Dr.eg.db', 'ComplexHeatmap', 'ConsensusClusterPlus', 'SRAdb', 'DBI', 'limma', 'edgeR'), suppressUpdates = TRUE)" && \
+  R -e "BiocInstaller::biocLite(c('scran', 'scater'))"
 
 # Install R packages from github and urls
 # Need most updated version of tximport so AlevinQC will install later

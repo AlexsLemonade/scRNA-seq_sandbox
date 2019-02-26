@@ -68,7 +68,7 @@ option_list <- list(
               default = "", help = "Optional label for output files",
               metavar = "character"),
   make_option(opt_str = c("-p", "--perc.drop"), type = "numeric",
-              default = .01, help = "Option to set the percent of samples that
+              default = 0.01, help = "Option to set the percent of samples that
               That is acceptable for scran to drop if they have negative 
               size factors from scater::computeSizeFactors. Give percentage in 
               the form of a decimal. Default is 1% or (0.01).
