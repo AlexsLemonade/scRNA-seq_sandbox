@@ -57,7 +57,7 @@ for folder in `ls`
   cd $folder/`ls $folder`/
   for f in `ls *_R1_001.fastq.gz | sed 's/_R1_001.fastq.gz//' `
     do
-    echo "Processing sample ${folder}"
+    echo "Processing sample ${folder}/${f}"
     start=`date +%s`
     echo "Start time : $start"
     salmon alevin -l ISR  \
@@ -67,7 +67,7 @@ for folder in `ls`
       -2 ${f}_R2_00*.fastq.gz \
       --chromium  \
       -p 10 \
-      -o ../../alevin_output/${folder} \
+      -o ../../alevin_output/${folder}/${f} \
       --tgMap ../../../genes_2_tx.tsv \
       --dumpCsvCounts \
       --dumpFeatures
