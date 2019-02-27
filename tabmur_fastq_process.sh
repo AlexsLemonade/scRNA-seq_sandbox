@@ -29,58 +29,52 @@ if [ ! -e ref_files/human_index ]; then
 fi
 
 #------------------------Download bam files from aws---------------------------#
-cd tab_mur_data
-
 # Make a list of the files we want
-aws --no-sign-request s3 ls s3://czbiohub-tabula-muris/10x_bam_files/  file.list.txt
+aws --no-sign-request s3 ls s3://czbiohub-tabula-muris/10x_bam_files/10X_P4_ > file.list.txt
+# grep -w "10X_P4_[5-7]_possorted_genome.bam$" file.list.txt
 
 # Download each of them (NOTE: These are large files ~20GB each)
-for line in $(cat file.list.txt | awk ‘{print $4}’)
-  do aws --no-sign-request s3 cp s3://czbiohub-tabula-muris/10x_bam_files/$line tab_mur_bam
-  done
-
-#------------------------Convert bam files to fastq files----------------------#
-cd tab_mur_bam
-
-# Run bamtofastq on all the files in tab_mur_bam folder
-for file in `ls *bam`
-  do
-  cellranger bamtofastq $file ../tab_mur_fastqs
-  done
-
-#-------------------------Get rid of extra folders-----------------------------#
-cd ../tab_mur_fastqs
-
-# Get rid of those extra folders that bamtofastq makes  
-for folder in `ls`
-  do
-  mv `ls $folder`/* .
-  rmdir `ls $folder`
+for line in $(grep -w "10X_P4_[6-7]_possorted_genome.bam$" file.list.txt | awk '{print $4}')
+  do 
+  echo "Downloading bam file: $line"
+  aws --no-sign-request s3 cp s3://czbiohub-tabula-muris/10x_bam_files/$line tab_mur_bam
+  echo "Converting $line to fastq file"
+  cellranger bamtofastq tab_mur_bam/$line tab_mur_fastqs/$line
+  echo "Removing $line"
+  rm tab_mur_bam/$line
   done
   
 #-------------------------------Quantify samples-------------------------------#
-# For each fastq file pair run salmon/alevin for quantfication
-# Change to the individual folder and then run Alevin for all the files there
+# Change to where the data are:
+cd tab_mur_fastqs
+
+# Set up a file to hold the times in seconds for file processing: 
+echo "File time(secs)" > ../file.run.duration.txt
+
+# For each fastq file sets run Salmon/Alevin for quantfication
 for folder in `ls`
   do
-  cd ${folder}
+  cd $folder/`ls $folder`/
   for f in `ls *_R1_001.fastq.gz | sed 's/_R1_001.fastq.gz//' `
     do
-    echo "Processing sample ${f}"
-    # Run Salmon with Alevin
+    echo "Processing sample ${folder}"
+    start=`date +%s`
+    echo "Start time : $start"
     salmon alevin -l ISR  \
       --no-version-check \
-      -i ../../../ref_files/human_index \
+      -i ../../../human_index \
       -1 ${f}_R1_00*.fastq.gz \
       -2 ${f}_R2_00*.fastq.gz \
       --chromium  \
       -p 10 \
-      -o ../../alevin_output/${f} \
-      --tgMap ../../../ref_files/genes_2_tx.tsv \
+      -o ../../alevin_output/${folder} \
+      --tgMap ../../../genes_2_tx.tsv \
       --dumpCsvCounts \
       --dumpFeatures
     done
-  cd ..
+    end=`date +%s`
+  cd ../..
+  echo "${f} $((end-start)) seconds" >> ../file.run.duration.txt
   done
 
 #-------------------Make gene matrix from alevin output------------------------#
