@@ -80,11 +80,6 @@ option_list <- list(
 # Parse options
 opt <- parse_args(OptionParser(option_list = option_list))
 
-opt$data <- file.path("tab_mur_data","normalized_tab_mur", "counts_tab_mur.RDS")
-opt$algorithm <- "all"
-opt$output <- "tab_mur_data/normalized_tab_mur"
-opt$label <- "tab_mur" 
-
 # Stop if no input data matrix is specified
 if (opt$data == "none") {
     stop("Error: no specified input gene matrix file. Use option -d to specify
@@ -181,7 +176,7 @@ for (algorithm in opt$algorithm) {
 
     # Make some clusters
     sce <- suppressWarnings(scran::computeSumFactors(sce))
-    neg.fact <- which(sce@int_colData@listData$size_factor < 0)
+    neg.fact <- which(sce@int_colData@listData$size_factor <= 0)
     
     # Determine number of samples that can be acceptably dropped before setting 
     # off a warning

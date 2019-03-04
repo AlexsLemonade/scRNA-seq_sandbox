@@ -22,7 +22,9 @@
 # to be automatically the default settings, use -f alone. 
 # 
 # "-f" - Option to use all default filters to be used as arguments to be used in 
-#        data_prep_functions.R's GeneMatrixFilter function.
+#        data_prep_functions.R's GeneMatrixFilter function. Note that using this 
+#        option makes the last three options listed here irrelevant, as they will
+#        be override with the default options. 
 # "-m" - Optional cutoff for number of counts for a data point to be considered 
 #        'expressed'. Argument to be used in data_prep_functions.R's 
 #        GeneMatrixFilter function.
@@ -40,6 +42,7 @@
 #   -o data \
 #   -q qc_reports \
 #   -l pbmc \
+#   -m 1
 #   -r
 
 #-------------------------- Get necessary packages-----------------------------#
@@ -87,12 +90,6 @@ option_list <- list(
 
 # Parse options
 opt <- parse_args(OptionParser(option_list = option_list))
-
-opt$dir <- file.path("tab_mur_data", "alevin_output")
-opt$output <- "tab_mur_data/normalized_tab_mur"
-opt$label <- "tab_mur"
-opt$rds <- TRUE
-opt$filter_default <- TRUE
 
 # Add an underscore if opt$label is being used
 if (opt$label != "") {
@@ -218,6 +215,11 @@ if (all(!is.na(filt.opts))) {
   gene.matrix <- GeneMatrixFilter(gene.matrix, min_counts = filt.opts[1],
                                   perc_samples = filt.opts[2],
                                   num_genes = filt.opts[3])
+  # Report gene matrix dimensions:
+  message(cat("\n Original number of genes: ", dim(all.data)[1],
+              "\n Original number of cells: ", dim(all.data)[2] - 1,
+              "\n Filtered set number of genes:", dim(gene.matrix)[1]
+              "\n Filtered set number of cells:", dim(gene.matrix)[2] - 1))
 }
 
 # If opt$rds is used, save it as an RDS file, otherwise, default is save as tsv
