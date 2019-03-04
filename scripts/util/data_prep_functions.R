@@ -4,7 +4,7 @@
 # These functions are used for prepping tximport counts data into a filtered
 # dataset that is ready for uploading to [ASAP online](https://asap.epfl.ch/)
 
-GeneMatrixFilter <- function(dataset, min_counts = 1, perc_genes = 0.01, num_genes = 100) {
+GeneMatrixFilter <- function(dataset, min_counts = 1, perc_samples = 0.01, num_genes = 100) {
     # This function is filters and makes dataset into ASAP format and assumes gene info
     # is the first column
     # Args:
@@ -12,7 +12,7 @@ GeneMatrixFilter <- function(dataset, min_counts = 1, perc_genes = 0.01, num_gen
     #        containing the gene names
     #  min_counts: the cutoff for minimum number of counts for a gene to be
     #              considered expressed in a particular sample
-    #  perc_genes: The minimum percent of samples that need to express that gene
+    #  perc_samples: The minimum percent of samples that need to express that gene
     #              to keep the gene in the set
     #  num_genes: The minimum number of genes a particular sample must express to
     #             be kept in the gene set
@@ -28,11 +28,11 @@ GeneMatrixFilter <- function(dataset, min_counts = 1, perc_genes = 0.01, num_gen
     
     # Find genes that are expressed in 1% of cells
     gene.sum <- apply(dataset >= min_counts, 1, sum)
-    perc.genes <- which(gene.sum > ncol(dataset)*perc_genes)
+    perc.samples <- which(gene.sum > ncol(dataset)*perc_samples)
     
     # Only keep those genes
-    dataset <- dataset[perc.genes, ]
-    gene <- gene[perc.genes, ]
+    dataset <- dataset[perc.samples, ]
+    gene <- gene[perc.samples]
     
     # Filter samples that express at least 100 genes
     sample.sum <- apply(dataset >= min_counts, 2, sum)

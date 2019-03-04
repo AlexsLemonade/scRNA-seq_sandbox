@@ -83,7 +83,7 @@ cd ../..
 
 # Run this script, which will create alevinQC output for you
 Rscript scripts/tag-based-pre-processing/1-make_gene_matrix-alevin.R \
-  -d ${dir}/alevin_output \
-  -o ${dir}/normalized_${label} \
-  -q results \
-  -l ${label}
+-d tab_mur_data/alevin_output \
+-o tab_mur_data/normalized_tab_mur \
+-l tab_mur \
+-r

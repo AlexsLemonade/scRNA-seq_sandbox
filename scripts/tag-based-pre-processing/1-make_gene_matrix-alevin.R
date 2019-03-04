@@ -11,14 +11,36 @@
 #        directory is specified, alevinQC is not run. (Optional)
 # "-l" - Optional label to add to output files. Generally necessary if processing
 #        multiple datasets in the same pipeline.
-#
+# "-f" - Optional but suggested filter application. If
+#        min_counts = 1, perc_genes = 0.01, num_genes = 100
+# "-r" - Store gene matrix as an RDS file instead of a tsv file. This is
+#        advisable for particularly large datasets.
+#        
+# Filter options:
+# Note: if any filter option is used, GeneMatrixFilter will be used for filtering,
+# and filter options not specified will be set to default. If you want all filters
+# to be automatically the default settings, use -f alone. 
+# 
+# "-f" - Option to use all default filters to be used as arguments to be used in 
+#        data_prep_functions.R's GeneMatrixFilter function.
+# "-m" - Optional cutoff for number of counts for a data point to be considered 
+#        'expressed'. Argument to be used in data_prep_functions.R's 
+#        GeneMatrixFilter function.
+# "-p" - Optional gene filter for percent of samples that need to express a given
+#        gene. Argument to be used in data_prep_functions.R's GeneMatrixFilter 
+#        function.
+# "-n" - Optional sample filter for number of genes that a particular sample 
+#        needs to express to be kept. Argument to be used in data_prep_functions.R's 
+#        GeneMatrixFilter function. 
+#        
 # Command line example:
 #
 # Rscript scripts/10x-pre-processing/1-make_gene_matrix-alevin.R \
 #   -d data/alevin_output \
 #   -o data \
 #   -q qc_reports \
-#   -l "pbmc"
+#   -l pbmc \
+#   -r
 
 #-------------------------- Get necessary packages-----------------------------#
 # Attach needed libraries
@@ -41,15 +63,74 @@ option_list <- list(
               not run. (Optional)", metavar = "character"),
   make_option(opt_str = c("-l", "--label"), type = "character",
               default = "", help = "Optional label for output files",
-              metavar = "character")
+              metavar = "character"),
+  make_option(opt_str = c("-r", "--rds"), action = "store_true",
+              default = FALSE, help = "Store gene matrix as an RDS file instead
+              of a tsv file. This is advisable for particularly large datasets."),
+  make_option(opt_str = c("-f", "--filter_default"), action = "store_true",
+              default = FALSE, help = "Option to use all default filters to be 
+              used as arguments to be used in data_prep_functions.R's 
+              GeneMatrixFilter function."),
+  make_option(opt_str = c("-m", "--min_counts"), type = "numeric",
+              default = NA, help = "Optional cutoff for number of counts for 
+              a data point to be considered 'expressed'. Argument to be used in 
+              data_prep_functions.R's GeneMatrixFilter function."),
+  make_option(opt_str = c("-p", "--perc_samples"), type = "numeric",
+              default = NA, help = "Optional gene filter for percent of samples that 
+              need to express a given gene. Argument to be used in 
+              data_prep_functions.R's GeneMatrixFilter function."),
+  make_option(opt_str = c("-n", "--num_genes"), type = "numeric",
+              default = NA, help = "Optional sample filter for number of genes that 
+              a particular sample needs to express to be kept. Argument to be used in 
+              data_prep_functions.R's GeneMatrixFilter function. ")
 )
 
 # Parse options
 opt <- parse_args(OptionParser(option_list = option_list))
 
+opt$dir <- file.path("tab_mur_data", "alevin_output")
+opt$output <- "tab_mur_data/normalized_tab_mur"
+opt$label <- "tab_mur"
+opt$rds <- TRUE
+opt$filter_default <- TRUE
+
 # Add an underscore if opt$label is being used
 if (opt$label != "") {
   opt$label <-  paste0("_", opt$label)
+}
+
+#---------------------------Set up filter options------------------------------#
+# Put all the filter options together
+filt.opts <- c(opt$min_counts, opt$perc_samples, opt$num_genes)
+
+# Make vector of default filters
+default.filts <- c(1, 0.01, 100)
+
+# If dfault filter option is used, make filt opts, the defaults
+if (opt$filter_default) {
+  filt.opts <- default.filts
+  message("Default filter settings applied.")
+} 
+
+# Check on filter options
+if (any(!is.na(filt.opts))) {
+  # Use default settings for filters not specified:
+  filt.opts[is.na(filt.opts)] <- default.filts[is.na(filt.opts)]
+  
+  # Before going further, if filters are being used, check for function source script
+  data.prep <- file.path("scripts", "util", "data_prep_functions.R")
+  if (!file.exists(data.prep)) {
+    warning("Filter option was applied but can't find ", data.prep,
+            "Make sure to run from the main repository and make sure data_prep_functions.R didn't move.")
+  } else {
+  source(data.prep)  
+  }
+  # Print out the filters being used
+  message(cat("Filters being used:",
+              "\n Minimum count considered detection:", filt.opts[1],
+              "\n Percent of samples expressing a gene:", filt.opts[2],
+              "\n Number of genes expressed by a sample:", filt.opts[3]
+              ))
 }
 
 #----------------- Set up function from the COMBINE lab------------------------#
@@ -76,7 +157,7 @@ ReadAlevin <- function(base_path = NULL){
   }
   # Read in the data from Alevin output
   expression_matrix <- readr::read_csv(data_loc, col_names = FALSE,
-                                       progress = FALSE)
+                                       progress = FALSE, guess_max = 100000)
 
   # Transpose the matrix so it is gene x cell
   expression_matrix <- t(expression_matrix[, 1:ncol(expression_matrix)-1])
@@ -132,9 +213,22 @@ samples <- stringr::word(colnames(all.data), sep = ":", -1)
 # Take out the data and make genes a column so write_tsv will have it
 gene.matrix <- data.frame("genes" = rownames(all.data), all.data)
 
-# Save this overall gene matrix to a tsv file
-readr::write_tsv(gene.matrix, file.path(opt$output, paste0("counts", opt$label,
-                                                           ".tsv")))
+# Apply gene matrix filter if the options have been provided
+if (all(!is.na(filt.opts))) {
+  gene.matrix <- GeneMatrixFilter(gene.matrix, min_counts = filt.opts[1],
+                                  perc_samples = filt.opts[2],
+                                  num_genes = filt.opts[3])
+}
+
+# If opt$rds is used, save it as an RDS file, otherwise, default is save as tsv
+if (!opt$rds) {
+  # Save this overall gene matrix to a tsv file
+  readr::write_tsv(gene.matrix, file.path(opt$output, paste0("counts", opt$label,
+                                                             ".tsv")))
+} else {
+  saveRDS(gene.matrix, file.path(opt$output, paste0("counts", opt$label,
+                                                    ".RDS")))
+}
 
 # Save sample key to a tsv file
 readr::write_tsv(data.frame(samples), file.path(opt$output,
