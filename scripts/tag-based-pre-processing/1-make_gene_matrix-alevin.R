@@ -12,7 +12,7 @@
 # "-l" - Optional label to add to output files. Generally necessary if processing
 #        multiple datasets in the same pipeline.
 # "-f" - Optional but suggested filter application. If
-#        min_counts = 1, perc_genes = 0.01, num_genes = 100
+#        min_counts = 0.0001, num_genes = 3, num_genes = 50
 # "-r" - Store gene matrix as an RDS file instead of a tsv file. This is
 #        advisable for particularly large datasets.
 #        
@@ -28,7 +28,7 @@
 # "-m" - Optional cutoff for number of counts for a data point to be considered 
 #        'expressed'. Argument to be used in data_prep_functions.R's 
 #        GeneMatrixFilter function.
-# "-p" - Optional gene filter for percent of samples that need to express a given
+# "-p" - Optional gene filter for nument of samples that need to express a given
 #        gene. Argument to be used in data_prep_functions.R's GeneMatrixFilter 
 #        function.
 # "-n" - Optional sample filter for number of genes that a particular sample 
@@ -77,15 +77,15 @@ option_list <- list(
   make_option(opt_str = c("-m", "--min_counts"), type = "numeric",
               default = NA, help = "Optional cutoff for number of counts for 
               a data point to be considered 'expressed'. Argument to be used in 
-              data_prep_functions.R's GeneMatrixFilter function."),
-  make_option(opt_str = c("-p", "--perc_samples"), type = "numeric",
-              default = NA, help = "Optional gene filter for percent of samples that 
+              data_prep_functions.R's GeneMatrixFilter function. Default is 0.0001"),
+  make_option(opt_str = c("-s", "--num_samples"), type = "numeric",
+              default = NA, help = "Optional gene filter for number of samples that 
               need to express a given gene. Argument to be used in 
-              data_prep_functions.R's GeneMatrixFilter function."),
-  make_option(opt_str = c("-n", "--num_genes"), type = "numeric",
+              data_prep_functions.R's GeneMatrixFilter function. Default is 3."),
+  make_option(opt_str = c("-g", "--num_genes"), type = "numeric",
               default = NA, help = "Optional sample filter for number of genes that 
               a particular sample needs to express to be kept. Argument to be used in 
-              data_prep_functions.R's GeneMatrixFilter function. ")
+              data_prep_functions.R's GeneMatrixFilter function. Default is 50.")
 )
 
 # Parse options
@@ -98,10 +98,10 @@ if (opt$label != "") {
 
 #---------------------------Set up filter options------------------------------#
 # Put all the filter options together
-filt.opts <- c(opt$min_counts, opt$perc_samples, opt$num_genes)
+filt.opts <- c(opt$min_counts, opt$num_samples, opt$num_genes)
 
 # Make vector of default filters
-default.filts <- c(1, 0.01, 100)
+default.filts <- c(0.0001, 3, 50)
 
 # If dfault filter option is used, make filt opts, the defaults
 if (opt$filter_default) {
@@ -125,7 +125,7 @@ if (any(!is.na(filt.opts))) {
   # Print out the filters being used
   message(cat("Filters being used:",
               "\n Minimum count considered detection:", filt.opts[1],
-              "\n Percent of samples expressing a gene:", filt.opts[2],
+              "\n Number of samples expressing a gene:", filt.opts[2],
               "\n Number of genes expressed by a sample:", filt.opts[3]
               ))
 }
@@ -213,12 +213,12 @@ gene.matrix <- data.frame("genes" = rownames(all.data), all.data)
 # Apply gene matrix filter if the options have been provided
 if (all(!is.na(filt.opts))) {
   gene.matrix <- GeneMatrixFilter(gene.matrix, min_counts = filt.opts[1],
-                                  perc_samples = filt.opts[2],
+                                  num_samples = filt.opts[2],
                                   num_genes = filt.opts[3])
   # Report gene matrix dimensions:
   message(cat("\n Original number of genes: ", dim(all.data)[1],
               "\n Original number of cells: ", dim(all.data)[2] - 1,
-              "\n Filtered set number of genes:", dim(gene.matrix)[1]
+              "\n Filtered set number of genes:", dim(gene.matrix)[1],
               "\n Filtered set number of cells:", dim(gene.matrix)[2] - 1))
 }
 
