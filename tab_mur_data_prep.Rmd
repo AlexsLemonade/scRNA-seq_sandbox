@@ -1,9 +1,12 @@
 ---
 title: "Filter Cutoff Investigation"
 author: "C. Savonen, CCDL for ALSF"
-date: "3/5/2019"
-output: html_document
+output:   
+  html_notebook: 
+    toc: true
+    toc_float: true
 ---
+Created: 3/6/2019
 
 #### Purpose: Set up the tabula muris 10X dataset we are working with for normalization and subsequent steps. 
 
@@ -23,21 +26,26 @@ library(ggplot2)
 ```
 
 Set up the data
+
 ```{r}
 # Read in data
 all.data <- readRDS(file.path("tab_mur_data", "counts_tab_mur.RDS"))
 
 # Keep the gene names separate
-gene.names <- rownames(all.data)
+gene.names <- all.data$genes
+
+# Get rid of gene column
+all.data <- all.data[, -1]
 ```
  
 Make cell info dataframe for labeling purposes
+
 ```{r}
 # Clean up sample names
 colnames(all.data) <- gsub("_possorted_genome.bam", "", colnames(all.data))
 
 # Make a dataframe of this cell info
-cell.info <- data.frame(strsplit(colnames(all.data), "\\.")[-1]) %>% 
+cell.info <- data.frame(strsplit(colnames(all.data), "\\.")) %>% 
   t() 
 
 # Change column names
@@ -54,7 +62,7 @@ with the sample names obtained in the cell.info dataframe.
 # Import metadata file and make it with only the variables and samples we want
 metadata <- readr::read_csv(file.path("tab_mur_data", "metadata_droplet.csv")) %>% 
   dplyr::select("channel", "mouse.id", "tissue") %>% 
-  dplyr::filter(grepl("10X_P4", channel), tissue != "Liver", tissue != "Spleen") %>% 
+  dplyr::filter(grepl("10X_P4", channel), tissue != "Liver", tissue != "Spleen") 
 
 # Make column name matching so we can use inner_join to merge the info
 colnames(metadata)[1] <- "sample.id"
@@ -70,6 +78,7 @@ in both mice.
 metadata <- dplyr::inner_join(cell.info, metadata, by = "sample.id") %>%
   readr::write_tsv("metadata.tsv")
 ```
+
 Make a data matrix for ease of collecting stats
 
 ```{r}
@@ -80,7 +89,7 @@ For least stringent filter, let's determine what the smallest expression value i
 
 ```{r}
 # Determine a detection cutoff
-min.cutoff <- min(data.mat[which(data.mat!= 0)])
+min.cutoff <- min(data.mat[which(data.mat != 0)])
 ```
 
 Let's make a detection matrix to just hold each data point as expressed or not
@@ -120,12 +129,39 @@ Use cutoffs determined by looking at the plots above and filter the data matrix,
 tack on gene names, write to tsv file.
 
 ```{r}
-all.data %>% dplyr::select(gene.sum > 3) %>% 
-  dplyr::filter(sample.sum > 50) %>% 
-  dplyr::mutate("genes" = gene.names) %>% 
-  readr::write_tsv("filtered_count_matrix_tab_mur.tsv")
+# Apply these filters to the data and save as filtered_data
+filtered_data <- all.data[, which(sample.sum > 50)] %>% 
+  dplyr::filter(gene.sum > 10) %>% 
+  dplyr::mutate("genes" = gene.names[which(gene.sum > 10)])
+
+# Let's check out how much genes x samples we have
+dim(filtered_data)
 ```
 
+Assuming what we have is good amount, let's filter the metadata to be the same 
+and check out what that leaves us with. 
+
+```{r}
+# Filter the metadata based on what's left in the filtered_dataset
+filtered_metadata <- metadata %>% 
+  dplyr::filter(full.id %in% colnames(filtered_data)) %>% 
+  dplyr::mutate_all(as.factor) %>%
+
+# Let's check out what this looks like
+summary(filtered_metadata)
+```
+
+Let's save things to tsv files
+
+```{r}
+# Save the metadata
+readr::write_tsv(filtered_metadata, file.path("tab_mur_data", "filtered_metadata_tab_mur.tsv"))
+
+# Save the data
+readr::write_tsv(filtered_data, file.path("tab_mur_data", "filtered_count_matrix_tab_mur.tsv"))
+```
+
+Session Info: 
 ```{r}
 sessionInfo()
 ```
