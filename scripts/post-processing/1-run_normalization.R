@@ -7,9 +7,8 @@
 # https://github.com/DeplanckeLab/ASAP/blob/88ca3716d09197f7d178761015ea4f6a2783dd5e/R_Python/normalization.R
 #
 # Options:
-# '-d' : Path to gene matrix in tab delimited format, gene x sample with gene
-#        info as the first column. With gene info column labeled as 'gene' or
-#        'genes' (not case sensitive)",
+# '-d' : Path to tsv or RDS file that contains gene matrix, gene x sample,
+#        with gene info column labeled as 'gene' or 'genes' (not case sensitive)
 # '-a' : Normalization method to use. To run all methods use "all", to run more
 #        than one method, separate the names by a space. eg -a tmm log
 #        If scran is one of the methods chosen, it will be ran first because
@@ -52,8 +51,9 @@ library(optparse)
 # Set up optparse options
 option_list <- list(
   make_option(opt_str = c("-d", "--data"), type = "character", default = "none",
-              help = "Path to gene matrix in tab delimited format, gene x sample
-              with gene info column labeled as 'gene' or 'genes' (not case sensitive)",
+              help = "Path to tsv or RDS file that contains gene matrix, 
+              gene x sample with gene info column labeled as 'gene' or 'genes' 
+              (not case sensitive)",
               metavar = "character"),
   make_option(opt_str = c("-a", "--algorithm"), type = "character",
               default = "none", help = "Normalization method to use. Options:
@@ -68,7 +68,7 @@ option_list <- list(
               default = "", help = "Optional label for output files",
               metavar = "character"),
   make_option(opt_str = c("-p", "--perc.drop"), type = "numeric",
-              default = .01, help = "Option to set the percent of samples that
+              default = 0.01, help = "Option to set the percent of samples that
               That is acceptable for scran to drop if they have negative 
               size factors from scater::computeSizeFactors. Give percentage in 
               the form of a decimal. Default is 1% or (0.01).
@@ -83,7 +83,7 @@ opt <- parse_args(OptionParser(option_list = option_list))
 # Stop if no input data matrix is specified
 if (opt$data == "none") {
     stop("Error: no specified input gene matrix file. Use option -d to specify
-         the gene matrix tsv data you would like to normalize")
+         the gene matrix tsv or RDS file you would like to normalize")
 }
 
 # Create the output for results folder if it does not exist
@@ -126,8 +126,16 @@ if (any(is.na(match(opt$algorithm, all.algorithms)))) {
          'voom','tmm','deseq2', 'vsd', 'scran', or 'all")
 }
 #----------------------------------Load data-----------------------------------#
-# Read in a tsv file of data
-dataset <- readr::read_tsv(opt$data, guess_max = 10000)
+if (grepl(".tsv$", opt$data)) {
+  # Read in a tsv file of data
+  dataset <- readr::read_tsv(opt$data, guess_max = 100000)
+} else if (grepl(".RDS$", opt$data)) {
+  # Read in a RDS file of data if it is RDS
+  dataset <- readRDS(opt$data)
+} else {
+  warning("File specified with -d was not a tsv file or RDS. Not in proper format.
+          Can't continue.")
+}
 
 # Find which column has gene info
 gene.col <- grep("gene", colnames(dataset), ignore.case = TRUE)
@@ -163,11 +171,12 @@ for (algorithm in opt$algorithm) {
   if (algorithm == "scran") {
 
     # scater wants the data to be rounded
-    sce <- SingleCellExperiment::SingleCellExperiment(list(counts = round(as.matrix(dataset))))
+    sce <- SingleCellExperiment::SingleCellExperiment(
+      list(counts = round(as.matrix(dataset))))
 
     # Make some clusters
     sce <- suppressWarnings(scran::computeSumFactors(sce))
-    neg.fact <- which(sce@int_colData@listData$size_factor < 0)
+    neg.fact <- which(sce@int_colData@listData$size_factor <= 0)
     
     # Determine number of samples that can be acceptably dropped before setting 
     # off a warning

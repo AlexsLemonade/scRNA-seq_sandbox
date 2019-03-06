@@ -6,8 +6,8 @@
 # Note that data must be in a gene matrix format for this script to run. 
 
 # Change your directory name, and desired label here. Then run the script.
-dir=darmanis_data
-label=darmanis
+dir=tab_mur_data
+label=tab_mur
 
 #-------------------------------Run normalization------------------------------#
 Rscript scripts/post-processing/1-run_normalization.R \

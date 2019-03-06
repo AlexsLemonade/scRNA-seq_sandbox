@@ -4,7 +4,8 @@
 # These functions are used for prepping tximport counts data into a filtered
 # dataset that is ready for uploading to [ASAP online](https://asap.epfl.ch/)
 
-GeneMatrixFilter <- function(dataset, min_counts = 1, perc_genes = 0.01, num_genes = 100) {
+GeneMatrixFilter <- function(dataset, min_counts = 1, num_samples = 100, 
+                             num_genes = 100, round_opt = FALSE) {
     # This function is filters and makes dataset into ASAP format and assumes gene info
     # is the first column
     # Args:
@@ -12,10 +13,12 @@ GeneMatrixFilter <- function(dataset, min_counts = 1, perc_genes = 0.01, num_gen
     #        containing the gene names
     #  min_counts: the cutoff for minimum number of counts for a gene to be
     #              considered expressed in a particular sample
-    #  perc_genes: The minimum percent of samples that need to express that gene
+    #  num_samples: The minimum number of samples that need to express that gene
     #              to keep the gene in the set
     #  num_genes: The minimum number of genes a particular sample must express to
     #             be kept in the gene set
+    #  round_opt: If you want the data to be rounded to no decimal points, then 
+    #             Put TRUE. Otherwise default is FALSE. 
     # Returns:
     #   A filtered gene expression data.frame, that is able to be submitted to ASAP
     # Get rid of decimal points
@@ -23,19 +26,28 @@ GeneMatrixFilter <- function(dataset, min_counts = 1, perc_genes = 0.01, num_gen
     # Store the genes separately
     gene <- dataset[, 1]
     
-    # Get rid of decimals (even if they are .000, ASAP doesn't like them)
-    dataset <- dataset[, -1] %>% apply(., 2, round)
+    # Get rid of gene column while we play with this
+    dataset <- dataset[, -1] 
     
-    # Find genes that are expressed in 1% of cells
+    # round the data only if the option says to
+    if (round_opt == TRUE) {
+      dataset <- apply(dataset, 2, round)
+    }
+    
+    # Find genes that are expressed in _% of cells
     gene.sum <- apply(dataset >= min_counts, 1, sum)
-    perc.genes <- which(gene.sum > ncol(dataset)*perc_genes)
+    
+    # Get indices of genes that meet criteria
+    genes.keep <- which(gene.sum > num_samples)
     
     # Only keep those genes
-    dataset <- dataset[perc.genes, ]
-    gene <- gene[perc.genes, ]
+    dataset <- dataset[genes.keep, ]
+    gene <- gene[genes.keep]
     
     # Filter samples that express at least 100 genes
     sample.sum <- apply(dataset >= min_counts, 2, sum)
+    
+    # Keep the samples we want to keep
     dataset <- dataset[, which(sample.sum > num_genes) ]
     
     # Need the genes to be its own column
