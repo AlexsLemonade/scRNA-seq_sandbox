@@ -80,11 +80,6 @@ option_list <- list(
 # Parse options
 opt <- parse_args(OptionParser(option_list = option_list))
 
-opt$data <- file.path("tab_mur_data", "normalized_tab_mur", "counts__tab_mur.RDS")
-opt$algorithm <- "all"
-opt$output <- "tab_mur_data/normalized_tab_mur"
-opt$label <- "tab_mur"
-
 # Stop if no input data matrix is specified
 if (opt$data == "none") {
     stop("Error: no specified input gene matrix file. Use option -d to specify
