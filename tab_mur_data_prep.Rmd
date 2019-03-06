@@ -1,0 +1,128 @@
+---
+title: "Filter Cutoff Investigation"
+author: "C. Savonen, CCDL for ALSF"
+date: "3/5/2019"
+output: html_document
+---
+
+#### Purpose: Set up the tabula muris 10X dataset we are working with for normalization and subsequent steps. 
+
+Subgoal: The cutoffs used for the smart-seq2 single cell data do not work well 
+on the 10X single cell data. This is not surprising, but let's investigate the 
+10X tab mur data so we can come up with some better cutoffs. 
+
+Other note: For the purposes of saving room and making a more manageable dataset 
+to work with, I am only using P4, and have excluded the Liver and spleen samples. 
+
+```{r}
+# Load ggplot2 library
+library(ggplot2)
+
+# magrittr pipe
+`%>%` <- dplyr::`%>%`
+```
+
+Set up the data
+```{r}
+# Read in data
+all.data <- readRDS(file.path("tab_mur_data", "counts_tab_mur.RDS"))
+
+# Keep the gene names separate
+gene.names <- rownames(all.data)
+```
+ 
+Make cell info dataframe for labeling purposes
+```{r}
+# Clean up sample names
+colnames(all.data) <- gsub("_possorted_genome.bam", "", colnames(all.data))
+
+# Make a dataframe of this cell info
+cell.info <- data.frame(strsplit(colnames(all.data), "\\.")[-1]) %>% 
+  t() %>% 
+  as.data.frame()
+
+# Change column names
+colnames(cell.info) <- c("cell_barcode", "sample.id")
+```
+
+Read in the metadata file obtained from figshare, clean it up so we can merge it
+with the sample names obtained in the cell.info dataframe. 
+
+```{r}
+# Import metadata file and make it with only the variables and samples we want
+metadata <- readr::read_csv(file.path("tab_mur_data", "metadata_droplet.csv")) %>% 
+  dplyr::select("channel", "mouse.id", "tissue") %>% 
+  dplyr::filter(grepl("10X_P4", channel), tissue != "Liver", tissue != "Spleen") 
+
+# Make column name matching so we can use inner_join to merge the info
+colnames(metadata)[1] <- "sample.id"
+```
+
+The liver samples had 95% of their data dropped in Alevin due to noisy cell 
+barcodes. 
+Spleen is excluded because then it became the only tissue that wasn't represented
+in both mice. 
+
+```{r}
+# Merge these two frames together
+metadata <- dplyr::inner_join(cell.info, metadata, by = "sample.id") %>%
+  readr::write_tsv("metadata.tsv")
+```
+Make a data matrix for ease of collecting stats
+
+```{r}
+data.mat <- all.data %>% as.matrix()
+```
+
+For least stringent filter, let's determine what the smallest expression value is
+
+```{r}
+# Determine a detection cutoff
+min.cutoff <- min(data.mat[which(data.mat!= 0)])
+```
+
+Let's make a detection matrix to just hold each data point as expressed or not
+
+```{r}
+# Make a matrix of detected or not detected logical values
+boolean <- data.mat >= min.cutoff
+```
+
+Determine cutoff for how many samples should express a gene 
+
+```{r}  
+# Make a vector that has the number of samples that express a gene
+gene.sum <- apply(boolean, 1, sum)
+
+# Plot this information
+plot(density(gene.sum), xlim = c(0, 300))
+```
+
+Determine cutoff for how many genes should be expressed in a sample 
+
+```{r}
+# Make vector that has the number of genes expressed by each cell
+sample.sum <- apply(boolean, 2, sum) 
+
+# Put this with the cell.info so we can look at the distributions by samples
+sample.sum.df <- data.frame(sample.sum, cell.info) 
+
+# Plot with each sample as its own line
+ggplot(sample.sum.df, aes(x = sample.sum, color = sample.id)) +
+  geom_density() +
+  geom_vline(aes(xintercept = 100))
+```
+
+Use cutoffs determined by looking at the plots above and filter the data matrix,
+tack on gene names, write to tsv file.
+
+```{r}
+all.data %>% dplyr::select(gene.sum > 3) %>% 
+  dplyr::filter(sample.sum > 50) %>% 
+  dplyr::mutate("genes" = gene.names) %>% 
+  readr::write_tsv("filtered_count_matrix_tab_mur.tsv")
+```
+
+```{r}
+sessionInfo()
+```

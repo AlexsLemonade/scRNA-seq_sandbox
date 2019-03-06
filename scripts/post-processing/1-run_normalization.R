@@ -80,6 +80,11 @@ option_list <- list(
 # Parse options
 opt <- parse_args(OptionParser(option_list = option_list))
 
+opt$data <- file.path("tab_mur_data", "normalized_tab_mur", "counts__tab_mur.RDS")
+opt$algorithm <- "all"
+opt$output <- "tab_mur_data/normalized_tab_mur"
+opt$label <- "tab_mur"
+
 # Stop if no input data matrix is specified
 if (opt$data == "none") {
     stop("Error: no specified input gene matrix file. Use option -d to specify
@@ -181,10 +186,12 @@ for (algorithm in opt$algorithm) {
     # Determine number of samples that can be acceptably dropped before setting 
     # off a warning
     num.drop <- ncol(dataset)*opt$perc.drop
-    calc.perc.neg <- round(num.drop/ncol(dataset), 3)
+    
+    # Calculate percent of samples that have negative size factors
+    calc.perc.neg <- ifelse(length(neg.fact)==0, 0, length(neg.fact)/ncol(dataset))
     
     # Dealing with negative size factors:
-    if (length(neg.fact) < num.drop) {
+    if (length(neg.fact) != 0 && length(neg.fact) < num.drop) {
       message(paste(length(neg.fact), " samples have negative size factors
                     from scran::computeSizeFactors calculations",
                     "This is ", calc.perg.neg, "% of samples.",
@@ -198,7 +205,7 @@ for (algorithm in opt$algorithm) {
       # Write copy of counts to file
       readr::write_tsv(dataset, file.path(opt$output, "matching_counts.tsv"))
 
-    } else {
+    } else if (length(neg.fact) > num.drop) {
       warning(paste("Stopping normalization calculation.",
                     length(neg.fact), " samples have negative size factors
                     from scran::computeSizeFactors calculations",
