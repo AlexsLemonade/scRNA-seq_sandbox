@@ -11,8 +11,6 @@
 #        directory is specified, alevinQC is not run. (Optional)
 # "-l" - Optional label to add to output files. Generally necessary if processing
 #        multiple datasets in the same pipeline.
-# "-f" - Optional but suggested filter application. If
-#        min_counts = 0.0001, num_genes = 3, num_genes = 50
 # "-r" - Store gene matrix as an RDS file instead of a tsv file. This is
 #        advisable for particularly large datasets.
 #        
@@ -22,13 +20,14 @@
 # to be automatically the default settings, use -f alone. 
 # 
 # "-f" - Option to use all default filters to be used as arguments to be used in 
-#        data_prep_functions.R's GeneMatrixFilter function. Note that using this 
+#        data_prep_functions.R's GeneMatrixFilter function. If used: 
+#        min_counts = 0.0001, num_samples = 3, num_genes = 50. Note that using this 
 #        option makes the last three options listed here irrelevant, as they will
 #        be override with the default options. 
 # "-m" - Optional cutoff for number of counts for a data point to be considered 
 #        'expressed'. Argument to be used in data_prep_functions.R's 
 #        GeneMatrixFilter function.
-# "-p" - Optional gene filter for nument of samples that need to express a given
+# "-p" - Optional gene filter for number of samples that need to express a given
 #        gene. Argument to be used in data_prep_functions.R's GeneMatrixFilter 
 #        function.
 # "-n" - Optional sample filter for number of genes that a particular sample 
@@ -118,9 +117,9 @@ if (any(!is.na(filt.opts))) {
   data.prep <- file.path("scripts", "util", "data_prep_functions.R")
   if (!file.exists(data.prep)) {
     warning("Filter option was applied but can't find ", data.prep,
-            "Make sure to run from the main repository and make sure data_prep_functions.R didn't move.")
+            "Make sure to run from the top directory and make sure data_prep_functions.R didn't move.")
   } else {
-  source(data.prep)  
+    source(data.prep)  
   }
   # Print out the filters being used
   message(cat("Filters being used:",
