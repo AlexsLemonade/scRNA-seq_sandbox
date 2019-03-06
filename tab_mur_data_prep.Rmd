@@ -145,7 +145,7 @@ and check out what that leaves us with.
 # Filter the metadata based on what's left in the filtered_dataset
 filtered_metadata <- metadata %>% 
   dplyr::filter(full.id %in% colnames(filtered_data)) %>% 
-  dplyr::mutate_all(as.factor) %>%
+  dplyr::mutate_all(as.factor) 
 
 # Let's check out what this looks like
 summary(filtered_metadata)
@@ -158,7 +158,7 @@ Let's save things to tsv files
 readr::write_tsv(filtered_metadata, file.path("tab_mur_data", "filtered_metadata_tab_mur.tsv"))
 
 # Save the data
-readr::write_tsv(filtered_data, file.path("tab_mur_data", "filtered_count_matrix_tab_mur.tsv"))
+readr::write_tsv(filtered_data, file.path("tab_mur_data", "filtered_counts_tab_mur.tsv"))
 ```
 
 Session Info: 
