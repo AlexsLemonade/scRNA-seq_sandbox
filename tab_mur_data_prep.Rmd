@@ -38,11 +38,13 @@ colnames(all.data) <- gsub("_possorted_genome.bam", "", colnames(all.data))
 
 # Make a dataframe of this cell info
 cell.info <- data.frame(strsplit(colnames(all.data), "\\.")[-1]) %>% 
-  t() %>% 
-  as.data.frame()
+  t() 
 
 # Change column names
 colnames(cell.info) <- c("cell_barcode", "sample.id")
+
+# Keep the full id names for each as well for matching purposes
+cell.info <- data.frame(full.id = colnames(all.data), cell.info)
 ```
 
 Read in the metadata file obtained from figshare, clean it up so we can merge it
@@ -52,7 +54,7 @@ with the sample names obtained in the cell.info dataframe.
 # Import metadata file and make it with only the variables and samples we want
 metadata <- readr::read_csv(file.path("tab_mur_data", "metadata_droplet.csv")) %>% 
   dplyr::select("channel", "mouse.id", "tissue") %>% 
-  dplyr::filter(grepl("10X_P4", channel), tissue != "Liver", tissue != "Spleen") 
+  dplyr::filter(grepl("10X_P4", channel), tissue != "Liver", tissue != "Spleen") %>% 
 
 # Make column name matching so we can use inner_join to merge the info
 colnames(metadata)[1] <- "sample.id"
@@ -95,7 +97,8 @@ Determine cutoff for how many samples should express a gene
 gene.sum <- apply(boolean, 1, sum)
 
 # Plot this information
-plot(density(gene.sum), xlim = c(0, 300))
+plot(density(gene.sum), xlim = c(0, 300));
+abline(v = 3)
 ```
 
 Determine cutoff for how many genes should be expressed in a sample 
