@@ -20,7 +20,7 @@ Rscript scripts/post-processing/1-run_normalization.R \
 #------------------------------Dimension reduction-----------------------------#
 Rscript scripts/post-processing/2-dim_reduction_analysis.R \
   -d ${dir}/normalized_${label} \
-  -m ${dir}/filtered_metadata.tsv \
+  -m ${dir}/filtered_metadata_${label}.tsv \
   -r pca \
   -l ${label} \
   -o pca_${label} 

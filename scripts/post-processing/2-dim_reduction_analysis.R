@@ -60,6 +60,12 @@ option_list <- list(
 # Parse options
 opt <- parse_args(OptionParser(option_list = option_list))
 
+opt$data <-  "tab_mur_data/normalized_tab_mur" 
+opt$metadata <- "tab_mur_data/filtered_metadata_tab_mur.tsv" 
+opt$reduce <- "pca" 
+opt$label <- "tab_mur" 
+opt$output <- "pca_tab_mur" 
+
 #--------------------------------Set up options--------------------------------#
 # Check that the dimension reduction option given is supported
 if (!(opt$reduce %in% c("tnse", "pca", "umap"))){
@@ -95,6 +101,18 @@ dataset.names <- dir(opt$data)
 
 # Remove file extension name and make it the name in the list
 names(datasets) <- gsub("\\..*$", "", dataset.names)
+
+# Read in the metadata
+meta <- readr::read_tsv(opt$metadata) %>% 
+  dplyr::mutate_all(as.factor) %>% 
+  as.list() 
+
+# Check that the metadata and data are reasonably compatible
+if (ncol(datasets[[1]]) != length(meta[[1]])) {
+  stop("Metadata length doesn't match dataset's number of columns.
+        Make sure the metadata that you are providing matches the order 
+        and length of the dataset")
+}
 
 #-------------------------------Dimension Reduction----------------------------#
 # Run dimension reduction on each gene expression dataset and extract x and y 
@@ -150,19 +168,6 @@ dim.red.data <- lapply(datasets, function(dataset) {
 })
 
 #-----------------------Plot with metadata variable labels---------------------#
-# Read in the metadata
-meta <- readr::read_tsv(opt$metadata) %>% 
-  dplyr::filter(geo_accession %in% colnames(datasets[[1]])) %>% 
-  dplyr::mutate_all(as.factor) %>% 
-  dplyr::select(-geo_accession) %>%
-  as.list() 
-
-# Write this metadata file as it's own thing
-meta %>% 
-  as.data.frame() %>% 
-  readr::write_tsv(file.path(opt$output, 
-                             paste0(opt$label, "filtered_metadata.tsv")))
-
 # Obtain variable names from metadata import
 variable.names <- gsub(".ch1", "", names(meta))
 variable.names <- gsub("\\.", "_", variable.names)

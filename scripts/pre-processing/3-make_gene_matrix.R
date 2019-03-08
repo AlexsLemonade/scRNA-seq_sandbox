@@ -60,6 +60,11 @@ option_list <- list(
 # Parse options
 opt <- parse_args(OptionParser(option_list = option_list))
 
+opt$dir <- "darmanis_data/salmon_quants"
+opt$output <- "darmanis_data" 
+opt$metadata <- 0.3
+opt$label <- "darmanis_data"
+
 # Add an underscore if label is specified
 if (!is.null(opt$label)){
   opt$label <- paste0(opt$label, "_")
@@ -129,4 +134,9 @@ tx.counts <- tx.counts %>% tibble::rownames_to_column("gene")
 # Save to tsv file
 readr::write_tsv(tx.counts, file.path(opt$output,
                                       paste0(opt$label, "counts.tsv")))
+
+# Write the percent mapped reads data to a tsv
+data.frame("geo_accession" = sample.names, salmon.prop.assigned) %>%
+readr::write_tsv(file.path(opt$output,
+                            paste0(opt$label, "percent_mapped_reads.tsv")))
 
