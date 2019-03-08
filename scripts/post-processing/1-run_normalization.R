@@ -104,7 +104,7 @@ if (opt$perc.drop < 0 || opt$perc.drop > 1) {
 
 #---------------------------Set up algorithms to run---------------------------#
 # List all the supported algorithms
-all.algorithms <- c('scran', 'scale', 'log', 'voom','tmm', 'deseq2', 'vsd')
+all.algorithms <- c('scran', 'scale', 'log', 'voom','tmm', 'deseq2')
 
 # If "all" is chosen, put all the normalization methods in list
 if (opt$algorithm == "all") {
@@ -182,14 +182,15 @@ for (algorithm in opt$algorithm) {
     # off a warning
     num.drop <- ncol(dataset)*opt$perc.drop
     
-    # Calculate percent of samples that have negative size factors
-    calc.perc.neg <- ifelse(length(neg.fact)==0, 0, length(neg.fact)/ncol(dataset))
-    
     # Dealing with negative size factors:
     if (length(neg.fact) != 0 && length(neg.fact) < num.drop) {
+      
+      # Calculate percent of samples that have negative size factors
+      calc.perc.neg <- ifelse(length(neg.fact) == 0, 0, length(neg.fact)/ncol(dataset))
+      
       message(paste(length(neg.fact), " samples have negative size factors
                     from scran::computeSizeFactors calculations",
-                    "This is ", calc.perg.neg, "% of samples.",
+                    "This is ", calc.perc.neg, "% of samples.",
                     "-p is set at ", opt$perc.drop, 
                     "So these samples will be removed from all normalization output."))
 
@@ -201,22 +202,21 @@ for (algorithm in opt$algorithm) {
       readr::write_tsv(dataset, file.path(opt$output, "matching_counts.tsv"))
 
     } else if (length(neg.fact) > num.drop) {
+      
+      # Calculate percent of samples that have negative size factors
+      calc.perc.neg <- ifelse(length(neg.fact) == 0, 0, length(neg.fact)/ncol(dataset))
+      
       warning(paste("Stopping normalization calculation.",
                     length(neg.fact), " samples have negative size factors
                     from scran::computeSizeFactors calculations",
-                    "This is ", calc.perg.neg, "% of samples, which is", 
+                    "This is ", calc.perc.neg, "% of samples, which is", 
                     "greater than the -p cutoff of :", opt$perc.drop, 
                     "If you wish for these samples removed anyway, increase -p
                     and re-run."))
     }
 
-    # Normalize the data
-    sce <- scater::normalize(sce)
-
-    # Convert to edgeR so we can extract the data as a matrix more easily
-    data.dge <- scran::convertTo(sce, type = "edgeR")
-    data.out <- as.data.frame(edgeR::cpm(data.dge, normalized.lib.sizes = TRUE,
-                                         log = TRUE))
+    # calculate CPMs using the size factors calculated
+    data.out <- sce_norm <- scater::calculateCPM(sce, use_size_factors = TRUE)
     title <- "Cluster 'scran' Normalized CPMs"
 
   } else if (algorithm  == "scale") {

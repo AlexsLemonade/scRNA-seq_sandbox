@@ -131,8 +131,11 @@ tack on gene names, write to tsv file.
 ```{r}
 # Apply these filters to the data and save as filtered_data
 filtered_data <- all.data[, which(sample.sum > 50)] %>% 
-  dplyr::filter(gene.sum > 10) %>% 
-  dplyr::mutate("genes" = gene.names[which(gene.sum > 10)])
+  dplyr::filter(gene.sum > 10)
+
+# Add the genes column to the front
+filtered_data <- data.frame("genes" = gene.names[which(gene.sum > 10)],
+                            filtered_data)
 
 # Let's check out how much genes x samples we have
 dim(filtered_data)

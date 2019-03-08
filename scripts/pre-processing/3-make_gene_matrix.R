@@ -13,6 +13,8 @@
 #        samples. Default is 0.5.
 # "-l" - Optional label to add to output files. Generally necessary if processing
 #        multiple datasets in the same pipeline.
+# "-r" - Option to save the original tximport object as an RDS file. Handy if you
+#        want to come back to the original dataset later.
 #
 # Command line example:
 #
@@ -21,7 +23,8 @@
 # -o data \
 # -g GSE86445 \
 # -m 0.5 \
-# -l "patel"
+# -l "patel" \
+# -r
 
 #-------------------------- Get necessary packages-----------------------------#
 # Attach needed libraries
@@ -48,7 +51,10 @@ option_list <- list(
                 metavar = "numeric"),
     make_option(opt_str = c("-l", "--label"), type = "character",
                 default = "", help = "Optional label for output files",
-                metavar = "character")
+                metavar = "character"),
+    make_option(opt_str = c("-r", "--rds"), action = "store_true",
+                default = FALSE, help = "Store tximport object as an RDS file.
+                Handy if you want to come back to the original dataset later.")
 )
 
 # Parse options
@@ -90,9 +96,10 @@ tx.counts <- tximport::tximport(quant.files, type = "salmon",
                                 tx2gene = tx.gene.key,
                                 countsFromAbundance = "no")
 
-# Save to RDS file temporarily
-saveRDS(tx.counts, "tximport_obj.RDS")
-# tx.counts <- readRDS("tximport_obj.RDS")
+# Save to RDS file if option is specified
+if (opt$rds) {
+  saveRDS(tx.counts, file.path(opt$output, paste0(opt$label, "tximport_obj.RDS")))
+}
 
 # Make as a dataframe
 tx.counts <- data.frame(tx.counts$counts, stringsAsFactors = FALSE)

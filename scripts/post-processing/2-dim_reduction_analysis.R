@@ -78,6 +78,11 @@ if (opt$label != "") {
   opt$label <- paste0("_", opt$label)
 }
 
+# Add this warning to prevent the whole thing running and then not working when 
+# it gets to the metadata step
+if (!file.exists(opt$metadata)) {
+  warning("Metadata file not found. Check the path given for option -m.")
+}
 #---------------------------------Read in data---------------------------------#
 # Get the file names of all the normalized files
 dataset.files <- dir(opt$data, full.names = TRUE)
