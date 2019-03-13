@@ -36,13 +36,16 @@ gene.names <- all.data$genes
 
 # Get rid of gene column
 all.data <- all.data[, -1]
+
+# Remove Liver samples
+all.data <- all.data %>% dplyr::select(-dplyr::contains("10X_P4_2"))
 ```
  
 Make cell info dataframe for labeling purposes
 
 ```{r}
 # Clean up sample names
-colnames(all.data) <- gsub("_possorted_genome.bam", "", colnames(all.data))
+#colnames(all.data) <- gsub("_possorted_genome.bam", "", #colnames(all.data))
 
 # Make a dataframe of this cell info
 cell.info <- data.frame(strsplit(colnames(all.data), "\\.")) %>% 
@@ -77,12 +80,39 @@ in both mice.
 # Merge these two frames together
 metadata <- dplyr::inner_join(cell.info, metadata, by = "sample.id") %>%
   readr::write_tsv("metadata.tsv")
+
+# Double check that metadata and data match
+all.equal(metadata$full.id, colnames(all.data))
+```
+Let's look at total counts for these samples
+
+```{r}
+# Calculate the total number of counts for each sample
+total_counts <- apply(all.data, 2, sum)
+
+# Histogram of this data
+hist(total_counts, breaks = 50, col = "lightblue"); 
+abline(v = 2000, col = "red")
+
+# Let's look at summary statistics
+summary(total_counts)
+```
+
+Filter out samples based on total counts.
+
+```{r}
+# Filter out these samples from data and metadata
+filtered_data <- all.data[, which(total_counts > 2000)]
+filtered_metadata <- metadata[which(total_counts > 2000), ]
+
+# Double check everything matches
+all.equal(colnames(filtered_data), filtered_metadata$full.id)
 ```
 
 Make a data matrix for ease of collecting stats
 
 ```{r}
-data.mat <- all.data %>% as.matrix()
+data.mat <- filtered_data %>% as.matrix()
 ```
 
 For least stringent filter, let's determine what the smallest expression value is
@@ -117,12 +147,12 @@ Determine cutoff for how many genes should be expressed in a sample
 sample.sum <- apply(boolean, 2, sum) 
 
 # Put this with the cell.info so we can look at the distributions by samples
-sample.sum.df <- data.frame(sample.sum, cell.info) 
+sample.sum.df <- data.frame(sample.sum, filtered_metadata) 
 
 # Plot with each sample as its own line
 ggplot(sample.sum.df, aes(x = sample.sum, color = sample.id)) +
   geom_density() +
-  geom_vline(aes(xintercept = 100))
+  geom_vline(aes(xintercept = 300))
 ```
 
 Use cutoffs determined by looking at the plots above and filter the data matrix,
@@ -130,7 +160,7 @@ tack on gene names, write to tsv file.
 
 ```{r}
 # Apply these filters to the data and save as filtered_data
-filtered_data <- all.data[, which(sample.sum > 50)] %>% 
+filtered_data <- filtered_data[, which(sample.sum > 300)] %>% 
   dplyr::filter(gene.sum > 10)
 
 # Add the genes column to the front
@@ -161,7 +191,8 @@ Let's save things to tsv files
 readr::write_tsv(filtered_metadata, file.path("tab_mur_data", "filtered_metadata_tab_mur.tsv"))
 
 # Save the data
-readr::write_tsv(filtered_data, file.path("tab_mur_data", "filtered_counts_tab_mur.tsv"))
+#readr::write_tsv(filtered_data, file.path("tab_mur_data", "filtered_counts_tab_mur.tsv"))
+saveRDS(filtered_data, file.path("tab_mur_data", "filtered_counts_tab_mur.RDS"))
 ```
 
 Session Info: 
