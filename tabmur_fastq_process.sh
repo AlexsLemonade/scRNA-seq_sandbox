@@ -12,12 +12,11 @@ mkdir tab_mur_data/alevin_output
 
 # Used the same transcriptome index as has been used before.
 # Made using these steps:
-# curl ftp://ftp.ensembl.org/pub/release-94/fasta/homo_sapiens/cdna/Homo_sapiens.GRCh38.cdna.all.fa.gz \
-#   -o ref_files/Homo_sapiens.GRCh38.cdna.all.fa.gz
-#
-# salmon --threads=16 --no-version-check index \
-#   -t ref_files/Homo_sapiens.GRCh38.cdna.all.fa.gz \
-#   -i ref_files/human_index \
+# 
+# salmon --threads=16 \
+#   --no-version-check index \
+#   -t Mus_musculus.GRCm38.cdna.all.fa.gz \
+#   -i mouse_index \
 #   -k 23
 
 #------------------------Download bam files from aws---------------------------#
@@ -27,17 +26,37 @@ cd tab_mur_data
 aws --no-sign-request s3 ls s3://czbiohub-tabula-muris/10x_bam_files/10X_P4_ > file.list.txt
 
 # Select only the bam files, and not the bam.bai
-grep -w "10X_P4_[0-7]_possorted_genome.bam$" file.list.txt > file.list.txt
+grep -w "10X_P4_[2-6]_possorted_genome.bam$" file.list.txt > file.list.bam.txt
 
 # Download each of them (NOTE: These are large files ~20GB each)
-for file in $(file.list.txt | awk '{print $4}')
+for file in `cat file.list.bam.txt`
   do
-  echo "Downloading bam file: $file"
-  aws --no-sign-request s3 cp s3://czbiohub-tabula-muris/10x_bam_files/$file tab_mur_bam
+  #echo "Downloading bam file: $file"
+  #aws --no-sign-request s3 cp s3://czbiohub-tabula-muris/10x_bam_files/$file tab_mur_bam/$file
   echo "Converting $file to fastq file"
   cellranger bamtofastq tab_mur_bam/$file tab_mur_fastqs/$file
-  echo "Removing $file"
-  rm tab_mur_bam/$file
+  done
+  #echo "Removing $file"
+  #rm tab_mur_bam/$file
+  cd tab_mur_fastqs/$file/`ls tab_mur_fastqs/$file`
+  for sample in `ls *L001_R1_001.fastq.gz | sed 's/L001_R1_001.fastq.gz//' `
+    do
+    echo "Processing sample ${file}/${sample}"
+    salmon alevin -l ISR  \
+      --no-version-check \
+      -i ../../../mouse_index \
+      -1 ${sample}L001_R1_00*.fastq.gz \
+      -2 ${sample}L001_R2_00*.fastq.gz \
+      --chromium  \
+      -p 10 \
+      -o ../../../alevin_output/${file}-${sample} \
+      --tgMap ../../../mouse_genes_2_tx.tsv \
+      --dumpCsvCounts \
+      --dumpFeatures
+    #echo "Compressing alevin results"
+    #zip -r $file.zip ../../../alevin_output/${folder}/${sample}
+    done
+  cd ../../..
   done
 
 #-------------------------------Quantify samples-------------------------------#
@@ -51,26 +70,26 @@ echo "File time (secs)" > ../file.run.duration.txt
 for folder in `ls`
   do
   cd $folder/`ls $folder`/
-  for file in `ls *_R1_001.fastq.gz | sed 's/_R1_001.fastq.gz//' `
+  for file in `ls *L001_R1_001.fastq.gz | sed 's/L001_R1_001.fastq.gz//' `
     do
-    echo "Processing sample ${folder}/${file}"
-    start=`date +%s`
-    echo "Start time : $start"
+    echo "Processing sample ${folder}-${file}"
+    #start=`date +%s`
+    # echo "Start time : $start"
     salmon alevin -l ISR  \
       --no-version-check \
-      -i ../../../human_index \
-      -1 ${file}_R1_00*.fastq.gz \
-      -2 ${file}_R2_00*.fastq.gz \
+      -i ../../../mouse_index \
+      -1 ${file}L001_R1_00*.fastq.gz \
+      -2 ${file}L001_R2_00*.fastq.gz \
       --chromium  \
       -p 10 \
-      -o ../../alevin_output/${folder}/${file} \
-      --tgMap ../../../genes_2_tx.tsv \
+      -o ../../../alevin_output/${folder}-${file} \
+      --tgMap ../../../mouse_genes_2_tx.tsv \
       --dumpCsvCounts \
       --dumpFeatures
     done
-    end=`date +%s`
+    #end=`date +%s`
   cd ../..
-  echo "${file} $((end-start)) seconds" >> ../file.run.duration.txt
+  #echo "${file} $((end-start)) seconds" >> ../file.run.duration.txt
   done
 
 #-------------------Make gene matrix from alevin output------------------------#
@@ -81,7 +100,8 @@ cd ../..
 # an output folder for it with the -q option )
 Rscript scripts/tag-based-pre-processing/1-make_gene_matrix-alevin.R \
   -d tab_mur_data/alevin_output \
-  -o tab_mur_data/normalized_tab_mur \
+  -o tab_mur_data \
+  -q tab_mur_data/alevinqc_results
   -l tab_mur \
-  -r \
-  -f
+  -r 
+  
