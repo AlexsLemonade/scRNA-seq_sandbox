@@ -83,7 +83,7 @@ if (opt$label != "") {
 if (!file.exists(opt$metadata)) {
   warning("Metadata file not found. Check the path given for option -m.")
 }
-#---------------------------------Read in data---------------------------------#
+#---------------------------------Read in data---------------------------------
 # Get the file names of all the normalized files
 dataset.files <- dir(opt$data, full.names = TRUE)
 
@@ -97,16 +97,11 @@ dataset.names <- dir(opt$data)
 names(datasets) <- gsub("\\..*$", "", dataset.names)
 
 # Read in the metadata
-meta <- readr::read_tsv(opt$metadata) %>% 
-  dplyr::mutate_all(as.factor) %>% 
-  as.list() 
+meta <- readr::read_tsv(opt$metadata)
+colnames(meta)[1] <- "sample_id"
 
-# Check that the metadata and data are reasonably compatible
-if (ncol(datasets[[1]]) != length(meta[[1]])) {
-  stop("Metadata length doesn't match dataset's number of columns.
-        Make sure the metadata that you are providing matches the order 
-        and length of the dataset")
-}
+# Filter the metadata if needed
+meta <- meta %>% dplyr::filter(sample_id %in% colnames(datasets[[1]]))
 
 #-------------------------------Dimension Reduction----------------------------#
 # Run dimension reduction on each gene expression dataset and extract x and y 
@@ -122,6 +117,13 @@ dim.red.data <- lapply(datasets, function(dataset) {
   if (length(gene.col > 0 )) {
     # Make dataset the data only
     dataset <- dataset[, -gene.col]
+  }
+  
+  # Check that the metadata and data are reasonably compatible
+  if (ncol(dataset) != nrow(meta)) {
+    stop("Metadata length doesn't match dataset's number of columns.
+         Make sure the metadata that you are providing matches the order 
+         and length of the dataset")
   }
   
   # Extract sample names
@@ -160,8 +162,15 @@ dim.red.data <- lapply(datasets, function(dataset) {
                    file.path(opt$output, paste0(opt$reduce, "_", set.name,
                                                 ".tsv")))
 })
-
+# saveRDS(dim.red.data, file.path(opt$output,
+#                                 paste0(opt$reduce, "_", set.name,".RDS"))
+                                 
 #-----------------------Plot with metadata variable labels---------------------#
+# Format metadata for easier use
+meta <- meta %>% 
+  dplyr::mutate_all(as.factor) %>% 
+  as.list()
+
 # Obtain variable names from metadata import
 variable.names <- gsub(".ch1", "", names(meta))
 variable.names <- gsub("\\.", "_", variable.names)

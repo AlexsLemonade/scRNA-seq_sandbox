@@ -27,7 +27,7 @@
 # '-o' : Directory where you would like the output to go. Default is current
 #        directory. New folder will be created if the specified folder doesn't
 #        exist.
-# '-l' : Optional label for output files"
+# '-l' : Optional label for output files.
 # '-p' : Option to set the percent of samples that is acceptable for scran to 
 #        drop if they have negative size factors from scater::computeSizeFactors.
 #        If more samples need to be dropped than this percentage, execution will
@@ -79,6 +79,11 @@ option_list <- list(
 
 # Parse options
 opt <- parse_args(OptionParser(option_list = option_list))
+
+opt$data <- "tab_mur_data/filtered_counts_tab_mur.RDS"
+opt$algorithm <- "all"
+opt$output <- "tab_mur_data/normalized_tab_mur"
+opt$label <- "tab_mur"
 
 # Stop if no input data matrix is specified
 if (opt$data == "none") {
@@ -142,8 +147,8 @@ gene.col <- grep("gene", colnames(dataset), ignore.case = TRUE)
 
 # Create the output for results folder if it does not exist
 if (length(gene.col) < 1) {
-  stop("Error: Cannot find a column with gene info. (Looking for 'gene' as
-       column name")
+  stop("Error: Cannot find a column with gene info. 
+        (Looking for 'gene' as column name)")
 }
 
 # Separate genes from the numeric data
@@ -159,7 +164,7 @@ if (any(is.na(dataset))) {
                 "NA's in your dataset. Turning them into zeroes."))
   dataset <- dplyr::mutate_all(dataset, zoo::na.aggregate)
 }
-
+   
 #-----------------------Run each algorithm in the list-------------------------#
 # For each algorithm, run through this loop
 for (algorithm in opt$algorithm) {
@@ -200,7 +205,7 @@ for (algorithm in opt$algorithm) {
       
       # Write copy of counts to file
       readr::write_tsv(dataset, file.path(opt$output, "matching_counts.tsv"))
-
+      
     } else if (length(neg.fact) > num.drop) {
       
       # Calculate percent of samples that have negative size factors
@@ -215,7 +220,7 @@ for (algorithm in opt$algorithm) {
                     and re-run."))
     }
 
-    # calculate CPMs using the size factors calculated
+    # Calculate CPMs using the size factors calculated
     data.out <- sce_norm <- scater::calculateCPM(sce, use_size_factors = TRUE)
     title <- "Cluster 'scran' Normalized CPMs"
 
