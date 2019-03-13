@@ -90,9 +90,20 @@ option_list <- list(
 # Parse options
 opt <- parse_args(OptionParser(option_list = option_list))
 
+opt$dir <- "tab_mur_data/alevin_output"
+opt$output <- "tab_mur_data/normalized_tab_mur"
+opt$qc <- "tab_mur_data/alevinqc_results"
+opt$label <- "tab_mur" 
+opt$rds <- TRUE
+
 # Add an underscore if opt$label is being used
 if (opt$label != "") {
   opt$label <-  paste0("_", opt$label)
+}
+
+# Make normalized data folder if it doesn't exist
+if (!dir.exists(opt$output)) {
+  dir.create(opt$output)
 }
 
 #---------------------------Set up filter options------------------------------#
