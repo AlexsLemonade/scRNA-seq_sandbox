@@ -60,12 +60,6 @@ option_list <- list(
 # Parse options
 opt <- parse_args(OptionParser(option_list = option_list))
 
-opt$data <-  "tab_mur_data/normalized_tab_mur" 
-opt$metadata <- "tab_mur_data/filtered_metadata_tab_mur.tsv" 
-opt$reduce <- "pca" 
-opt$label <- "tab_mur" 
-opt$output <- "pca_tab_mur" 
-
 #--------------------------------Set up options--------------------------------#
 # Check that the dimension reduction option given is supported
 if (!(opt$reduce %in% c("tnse", "pca", "umap"))){

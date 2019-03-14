@@ -17,7 +17,8 @@
 # "-o" : Directory where you would like the output to go. Default is current 
 #        directory
 # "-l" : Optional label for output files. 
-
+# '-s' : Set seed (Optional).
+#
 # Command line example:
 #
 # Rscript scripts/7-cluster_analysis.R \
@@ -53,11 +54,19 @@ option_list <- list(
               output to go", metavar = "character"),
   make_option(opt_str = c("-l", "--label"), type = "character",
               default = "", help = "Optional label for output files",
-              metavar = "character")
+              metavar = "character"),
+  make_option(opt_str = c("-s", "--seed"), type = "numeric",
+              default = NULL, help = "Set seed. Only really pertinent for 
+              scran clustering step.")
 )
 
 # Parse options
 opt <- parse_args(OptionParser(option_list = option_list))
+
+# Set seed if option was set
+if (!is.null(opt$seed)){
+  set.seed(opt$seed)
+}
 
 opt$data <- "pca_tab_mur" 
 opt$metadata <- "updated_metadata.tsv" 
@@ -103,7 +112,7 @@ names(datasets) <- gsub("\\..*$", "", dataset.names)
 # files. 
 meta <- readr::read_tsv(opt$metadata) %>% 
   dplyr::mutate_all(as.factor) %>% 
-  dplyr::select(-"sample_id") %>% 
+  dplyr::select(-c("sample_id", "cell_barcode")) %>% 
   as.list()
 
 # Obtain variable names from metadata import

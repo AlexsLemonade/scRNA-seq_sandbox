@@ -12,7 +12,7 @@ label=tab_mur
 
 #-------------------------------Run normalization------------------------------#
 Rscript scripts/post-processing/1-run_normalization.R \
-  -d ${dir}/filtered_counts_${label}.tsv \
+  -d ${dir}/counts_${label}.RDS \
   -a all \
   -o ${dir}/normalized_${label} \
   -l ${label}
@@ -27,8 +27,8 @@ Rscript scripts/post-processing/2-dim_reduction_analysis.R \
   
 #------------------------------Clustering analysis-----------------------------#
 Rscript scripts/post-processing/3-cluster_analysis.R \
-  -d results/pca_${label} \
-  -m ${dir}/metadata.tsv \
+  -d pca_${label} \
+  -m ${dir}/filtered_metadata.tsv \
   -l ${label} \
   -o results/pca_results_${dir} 
   
