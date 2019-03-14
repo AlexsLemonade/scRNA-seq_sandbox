@@ -34,6 +34,7 @@
 #        hault and a warning message will tell you how many samples potentially 
 #        need to be removed. Default is 1% (0.01). This option is irrelevant if
 #        you are not using scran normalization
+# '-s' : Set seed. Only really pertinent for scran clustering step. (Optional)
 #
 # Command line example:
 #
@@ -42,7 +43,8 @@
 # -a log \
 # -o normalized_data \
 # -l darmanis \
-# -p 0.01
+# -p 0.01 \
+# -s 1234
 # 
 # Load library:
 library(optparse)
@@ -74,17 +76,19 @@ option_list <- list(
               the form of a decimal. Default is 1% or (0.01).
               If more samples than the percentage given have negative
               size factors, execution of the script stops and a warning will 
-              be given.")
+              be given."),
+  make_option(opt_str = c("-s", "--seed"), type = "numeric",
+              default = NULL, help = "Set seed. Only really pertinent for 
+              scran clustering step.")
 )
 
 # Parse options
 opt <- parse_args(OptionParser(option_list = option_list))
 
-opt$data <- "tab_mur_data/filtered_counts_tab_mur.RDS"
-opt$algorithm <- "all"
-opt$output <- "tab_mur_data/normalized_tab_mur"
-opt$label <- "tab_mur"
-
+# Set seed if option was set
+if (!is.null(opt$seed)){
+  set.seed(opt$seed)
+}
 # Stop if no input data matrix is specified
 if (opt$data == "none") {
     stop("Error: no specified input gene matrix file. Use option -d to specify
@@ -178,9 +182,12 @@ for (algorithm in opt$algorithm) {
     # scater wants the data to be rounded
     sce <- SingleCellExperiment::SingleCellExperiment(
       list(counts = round(as.matrix(dataset))))
-
+    
     # Make some clusters
-    sce <- suppressWarnings(scran::computeSumFactors(sce))
+    qclust <- scran::quickCluster(sce)
+    
+    # Compute sum factors
+    sce <- suppressWarnings(scran::computeSumFactors(sce, clusters = qclust))
     neg.fact <- which(sce@int_colData@listData$size_factor <= 0)
     
     # Determine number of samples that can be acceptably dropped before setting 
@@ -203,9 +210,6 @@ for (algorithm in opt$algorithm) {
       sce <- sce[, -neg.fact]
       dataset <- dataset[, -neg.fact]
       
-      # Write copy of counts to file
-      readr::write_tsv(dataset, file.path(opt$output, "matching_counts.tsv"))
-      
     } else if (length(neg.fact) > num.drop) {
       
       # Calculate percent of samples that have negative size factors
@@ -221,8 +225,13 @@ for (algorithm in opt$algorithm) {
     }
 
     # Calculate CPMs using the size factors calculated
-    data.out <- sce_norm <- scater::calculateCPM(sce, use_size_factors = TRUE)
-    title <- "Cluster 'scran' Normalized CPMs"
+    sce_norm <- scater::normalize(sce)
+    data.out <- SingleCellExperiment::logcounts(sce_norm)
+    
+    # Write copy of counts to file that matches the size of this
+    readr::write_tsv(dataset, file.path(opt$output, "matching_counts.tsv"))
+    
+    title <- "Cluster 'scran' Normalized log Counts"
 
   } else if (algorithm  == "scale") {
     data.out <- as.data.frame(scale(dataset))

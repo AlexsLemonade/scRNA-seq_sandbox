@@ -60,6 +60,12 @@ option_list <- list(
 # Parse options
 opt <- parse_args(OptionParser(option_list = option_list))
 
+opt$data <-  "tab_mur_data/normalized_tab_mur" 
+opt$metadata <- "tab_mur_data/filtered_metadata_tab_mur.tsv" 
+opt$reduce <- "pca" 
+opt$label <- "tab_mur" 
+opt$output <- "pca_tab_mur" 
+
 #--------------------------------Set up options--------------------------------#
 # Check that the dimension reduction option given is supported
 if (!(opt$reduce %in% c("tnse", "pca", "umap"))){
@@ -103,6 +109,9 @@ colnames(meta)[1] <- "sample_id"
 # Filter the metadata if needed
 meta <- meta %>% dplyr::filter(sample_id %in% colnames(datasets[[1]]))
 
+# Write this metadata to its own file
+readr::write_tsv(meta, file.path(opt$output, "updated_metadata.tsv"))
+
 #-------------------------------Dimension Reduction----------------------------#
 # Run dimension reduction on each gene expression dataset and extract x and y 
 # coordinates
@@ -121,9 +130,11 @@ dim.red.data <- lapply(datasets, function(dataset) {
   
   # Check that the metadata and data are reasonably compatible
   if (ncol(dataset) != nrow(meta)) {
-    stop("Metadata length doesn't match dataset's number of columns.
-         Make sure the metadata that you are providing matches the order 
-         and length of the dataset")
+    message(paste0("Metadata length doesn't match dataset:",
+                 dataset.files[parent.frame()$i[]], 
+                " number of columns.",
+                "Make sure the metadata that you are providing matches the order 
+                 and length of the dataset."))
   }
   
   # Extract sample names
@@ -131,6 +142,9 @@ dim.red.data <- lapply(datasets, function(dataset) {
   
   # Run the dimension reduction technique
   if (opt$reduce == "tsne") {
+    # Print message
+    message("Running tsne..")
+    
     # Run tsne
     dim.red <- Rtsne::Rtsne(t(dataset), check_duplicates = FALSE)
   
@@ -138,6 +152,9 @@ dim.red.data <- lapply(datasets, function(dataset) {
     dim.red <- data.frame(dim.red$Y)
   }
   if (opt$reduce == "pca") {
+    # Print message
+    message("Running pca...")
+    
     # Run pca
     dim.red <- prcomp(t(dataset))
       
@@ -145,6 +162,9 @@ dim.red.data <- lapply(datasets, function(dataset) {
     dim.red <- data.frame(dim.red$x[, 1:2])
   }
   if (opt$reduce == "umap") {
+    # Print message
+    message("Running umap...")
+    
     # Run umap
     dim.red <- umap::umap(t(dataset))
       
@@ -162,8 +182,10 @@ dim.red.data <- lapply(datasets, function(dataset) {
                    file.path(opt$output, paste0(opt$reduce, "_", set.name,
                                                 ".tsv")))
 })
-# saveRDS(dim.red.data, file.path(opt$output,
-#                                 paste0(opt$reduce, "_", set.name,".RDS"))
+
+# Save as RDS for easy re-graphing later
+saveRDS(dim.red.data, file.path(opt$output,
+                                 paste0(opt$reduce, ".RDS")))
                                  
 #-----------------------Plot with metadata variable labels---------------------#
 # Format metadata for easier use
@@ -175,7 +197,7 @@ meta <- meta %>%
 variable.names <- gsub(".ch1", "", names(meta))
 variable.names <- gsub("\\.", "_", variable.names)
 
-for (variable in 1:length(meta)) {
+for (variable in 2:length(meta)) {
   # Start with legend as NULL
   legend <- NULL
   

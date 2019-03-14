@@ -59,6 +59,11 @@ option_list <- list(
 # Parse options
 opt <- parse_args(OptionParser(option_list = option_list))
 
+opt$data <- "pca_tab_mur" 
+opt$metadata <- "updated_metadata.tsv" 
+opt$label <- "tab_mur" 
+opt$output <- "results/pca_results_tab_mur"
+
 # Create the output for results folder if it does not exist
 if (!dir.exists(opt$output)) {
   message(paste("Output folder:", opt$output, "does not exist, creating one"))
@@ -98,6 +103,7 @@ names(datasets) <- gsub("\\..*$", "", dataset.names)
 # files. 
 meta <- readr::read_tsv(opt$metadata) %>% 
   dplyr::mutate_all(as.factor) %>% 
+  dplyr::select(-"sample_id") %>% 
   as.list()
 
 # Obtain variable names from metadata import
@@ -111,6 +117,9 @@ lapply(meta, function(meta.var) {
   # Extract the variable name 
   variable.name <- variable.names[parent.frame()$i[]]
   
+  # Print progress message:
+  message(paste("Doing clustering by", variable.name, "..."))
+  
   # Check how large the smallest group in the metadata is
   no.knn <- min(summary(meta.var)) < 4
   if (no.knn) {
@@ -118,9 +127,17 @@ lapply(meta, function(meta.var) {
                    "' are too irregular to run KNN clustering only kmeans will 
                    be done"))
   }
-
+  
+  # Get number of datasets in list
+  n.datasets <- length(datasets)
+  
   # Get clustering results for all datasets
   cluster.results <- lapply(datasets, function(dataset) {
+                            # Print progress message
+                            message(paste("Doing clustering for dataset", 
+                                          parent.frame()$i[], "out of",
+                                          n.datasets))
+    
                             # Run kmeans clustering 
                             kmeans.results <- KmeansEval(dataset, metadata = meta.var)
     
