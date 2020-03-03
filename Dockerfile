@@ -116,3 +116,6 @@ RUN conda config --add channels bioconda
 RUN conda config --add channels conda-forge
 
 RUN conda install -c bioconda scanpy
+
+RUN pip install glmpca
+RUN pip install igraph
